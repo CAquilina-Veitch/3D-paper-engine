@@ -281,6 +281,42 @@ h2 {
   margin: 0;
 }
 
+/* Draggable numeric value (drag to scrub, click to type) */
+.scrubber {
+  background: var(--mat-well);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-family: var(--mono);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+.scrubber:hover {
+  border-color: var(--edge-strong);
+}
+.scrubber .unit {
+  color: var(--ink-dim);
+}
+
+/* Typeable value shown next to a bounded slider */
+.val-input {
+  width: 58px;
+  background: var(--mat-well);
+  border: 1px solid var(--edge);
+  color: var(--kraft);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: right;
+}
+.val-input:focus {
+  outline: none;
+  border-color: var(--kraft);
+}
+
 /* ── Inspector sections ── */
 .section {
   border: 1px solid var(--edge);

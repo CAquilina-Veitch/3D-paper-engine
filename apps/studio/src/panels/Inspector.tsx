@@ -1,5 +1,5 @@
 import type { HeightfieldLayer, NoiseAlgo, SlotOpening, Sublayer } from "@paper3d/model";
-import { NumberField, Section, SelectField, SliderField } from "../components/fields";
+import { Scrubber, Section, SelectField, SliderField } from "../components/fields";
 import { useDocStore } from "../state/docStore";
 import { useSliceStore } from "../state/engineClient";
 import { MATERIAL_PRESETS, buildStats } from "../state/stats";
@@ -38,10 +38,11 @@ export function Inspector() {
       {layer && (
         <>
           <Section title={`${layer.name} — shape`}>
-            <NumberField
+            <Scrubber
               label="Height scale (mm)"
               value={layer.heightScale}
               min={1}
+              precision={0}
               onChange={(v) => mutateLayer((l) => (l.heightScale = v))}
             />
           </Section>
@@ -50,31 +51,34 @@ export function Inspector() {
             {layer.slicing.families.map((family, i) => (
               <div key={family.id} className="family">
                 <strong>Family {"AB"[i] ?? i + 1}</strong>
-                <NumberField
+                <Scrubber
                   label="Angle (°)"
                   value={family.angleDeg}
-                  step={5}
+                  step={1}
+                  precision={0}
                   onChange={(v) =>
                     mutateLayer((l) => {
                       l.slicing.families[i]!.angleDeg = v;
                     })
                   }
                 />
-                <NumberField
+                <Scrubber
                   label="Spacing (mm)"
                   value={family.spacing}
                   min={2}
                   step={0.5}
+                  precision={1}
                   onChange={(v) =>
                     mutateLayer((l) => {
                       l.slicing.families[i]!.spacing = v;
                     })
                   }
                 />
-                <NumberField
+                <Scrubber
                   label="Offset (mm)"
                   value={family.phase}
                   step={0.5}
+                  precision={1}
                   onChange={(v) =>
                     mutateLayer((l) => {
                       l.slicing.families[i]!.phase = v;
@@ -98,18 +102,20 @@ export function Inspector() {
       )}
 
       <Section title="World">
-        <NumberField
+        <Scrubber
           label="Width (mm)"
           value={doc.world.width}
           min={40}
           step={10}
+          precision={0}
           onChange={(v) => update((d) => (d.world.width = v))}
         />
-        <NumberField
+        <Scrubber
           label="Depth (mm)"
           value={doc.world.depth}
           min={40}
           step={10}
+          precision={0}
           onChange={(v) => update((d) => (d.world.depth = v))}
         />
       </Section>
@@ -136,25 +142,28 @@ export function Inspector() {
             <option value="Custom">Custom…</option>
           </select>
         </label>
-        <NumberField
+        <Scrubber
           label="Paper thickness (mm)"
           value={doc.print.paperThickness}
           min={0.05}
           step={0.05}
+          precision={2}
           onChange={(v) => update((d) => (d.print.paperThickness = v))}
         />
-        <NumberField
+        <Scrubber
           label="Kerf (mm)"
           value={doc.print.kerf}
           min={0}
           step={0.01}
+          precision={2}
           onChange={(v) => update((d) => (d.print.kerf = v))}
         />
-        <NumberField
+        <Scrubber
           label="Base pedestal (mm)"
           value={doc.print.basePedestal}
           min={0}
           step={1}
+          precision={0}
           onChange={(v) => update((d) => (d.print.basePedestal = v))}
         />
       </Section>
@@ -204,40 +213,43 @@ function SublayerInspector(props: { layer: HeightfieldLayer; sublayer: Sublayer 
           options={NOISE_ALGOS}
           onChange={(algo) => mutateSub((s: typeof sublayer) => (s.algo = algo))}
         />
-        <NumberField
+        <Scrubber
           label="Seed"
           value={sublayer.seed}
+          step={1}
+          precision={0}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.seed = v))}
         />
-        <SliderField
+        <Scrubber
           label="Frequency"
           value={sublayer.frequency}
-          min={0.5}
-          max={20}
-          step={0.5}
+          min={0.1}
+          step={0.1}
+          precision={2}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.frequency = v))}
         />
-        <SliderField
+        <Scrubber
           label="Octaves"
           value={sublayer.octaves}
           min={1}
-          max={8}
+          max={12}
           step={1}
-          onChange={(v) => mutateSub((s: typeof sublayer) => (s.octaves = v))}
+          precision={0}
+          onChange={(v) => mutateSub((s: typeof sublayer) => (s.octaves = Math.round(v)))}
         />
-        <SliderField
+        <Scrubber
           label="Lacunarity"
           value={sublayer.lacunarity}
-          min={1.5}
-          max={4}
+          min={1}
           step={0.1}
+          precision={2}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.lacunarity = v))}
         />
         <SliderField
           label="Gain"
           value={sublayer.gain}
-          min={0.1}
-          max={0.9}
+          min={0}
+          max={1}
           step={0.05}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.gain = v))}
         />
@@ -290,27 +302,35 @@ function SublayerInspector(props: { layer: HeightfieldLayer; sublayer: Sublayer 
           options={["linear", "radial"] as const}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.shape = v))}
         />
-        <NumberField
+        <Scrubber
           label="From u"
           value={sublayer.from[0]}
+          min={0}
+          max={1}
           step={0.05}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.from = [v, s.from[1]]))}
         />
-        <NumberField
+        <Scrubber
           label="From v"
           value={sublayer.from[1]}
+          min={0}
+          max={1}
           step={0.05}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.from = [s.from[0], v]))}
         />
-        <NumberField
+        <Scrubber
           label="To u"
           value={sublayer.to[0]}
+          min={0}
+          max={1}
           step={0.05}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.to = [v, s.to[1]]))}
         />
-        <NumberField
+        <Scrubber
           label="To v"
           value={sublayer.to[1]}
+          min={0}
+          max={1}
           step={0.05}
           onChange={(v) => mutateSub((s: typeof sublayer) => (s.to = [s.to[0], v]))}
         />

@@ -1,12 +1,17 @@
 import { useRef } from "react";
-import { Editor2D } from "./editors/heightmap/Editor2D";
 import { ExportDialog } from "./panels/ExportDialog";
 import { Inspector } from "./panels/Inspector";
 import { LayersPanel } from "./panels/LayersPanel";
-import { Preview3D } from "./preview3d/Preview3D";
+import { Workspace } from "./shell/Workspace";
 import { redo, undo, useDocStore } from "./state/docStore";
 import { openDocFile } from "./state/persistence";
-import { useUiStore } from "./state/uiStore";
+import { type Workspace as WorkspaceId, useUiStore } from "./state/uiStore";
+
+const WORKSPACES: { id: WorkspaceId; label: string }[] = [
+  { id: "sculpt", label: "Sculpt" },
+  { id: "slice", label: "Slice" },
+  { id: "print", label: "Print" },
+];
 
 export function App() {
   const doc = useDocStore((s) => s.doc);
@@ -25,20 +30,16 @@ export function App() {
           onChange={(e) => update((d) => void (d.name = e.target.value))}
         />
         <div className="tabs">
-          <button
-            type="button"
-            className={ui.tab === "2d" ? "active" : ""}
-            onClick={() => ui.set({ tab: "2d" })}
-          >
-            2D heightmap
-          </button>
-          <button
-            type="button"
-            className={ui.tab === "3d" ? "active" : ""}
-            onClick={() => ui.set({ tab: "3d" })}
-          >
-            3D preview
-          </button>
+          {WORKSPACES.map((w) => (
+            <button
+              type="button"
+              key={w.id}
+              className={ui.workspace === w.id ? "active" : ""}
+              onClick={() => ui.set({ workspace: w.id })}
+            >
+              {w.label}
+            </button>
+          ))}
         </div>
         <div className="spacer" />
         <button type="button" onClick={undo} title="Undo (ctrl+z)">
@@ -69,7 +70,9 @@ export function App() {
         <aside className="left">
           <LayersPanel />
         </aside>
-        <main className="center">{ui.tab === "2d" ? <Editor2D /> : <Preview3D />}</main>
+        <main className="center">
+          <Workspace />
+        </main>
         <aside className="right">
           <Inspector />
         </aside>

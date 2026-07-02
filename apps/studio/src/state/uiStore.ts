@@ -1,11 +1,11 @@
 import { create } from "zustand";
 
-export type EditorTab = "2d" | "3d";
+export type Workspace = "sculpt" | "slice" | "print";
 export type PreviewMode = "smooth" | "sliced";
 export type MapShading = "gray" | "hypso";
 
 interface UiState {
-  tab: EditorTab;
+  workspace: Workspace;
   previewMode: PreviewMode;
   explode: number;
   shading: MapShading;
@@ -21,7 +21,7 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>()((set) => ({
-  tab: "3d",
+  workspace: "sculpt",
   previewMode: "sliced",
   explode: 0,
   shading: "hypso",

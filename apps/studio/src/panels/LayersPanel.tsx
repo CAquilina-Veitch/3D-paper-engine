@@ -1,0 +1,189 @@
+import {
+  type BlendMode,
+  type HeightfieldLayer,
+  defaultNoiseSublayer,
+  defaultPaintSublayer,
+  newId,
+} from "@paper3d/model";
+import { SelectField, SliderField } from "../components/fields";
+import { useDocStore } from "../state/docStore";
+import { useUiStore } from "../state/uiStore";
+
+const BLEND_MODES: readonly BlendMode[] = ["add", "subtract", "multiply", "min", "max", "replace"];
+
+export function LayersPanel() {
+  const doc = useDocStore((s) => s.doc);
+  const update = useDocStore((s) => s.update);
+  const { selectedLayerId, selectedSublayerId, set } = useUiStore();
+
+  // Layers render top of stack first, like Photoshop.
+  const layers = doc.layers.slice().reverse();
+
+  return (
+    <div className="layers-panel">
+      <h2>Layers</h2>
+      {layers.map((layer) => {
+        const selected = layer.id === (selectedLayerId ?? doc.layers[doc.layers.length - 1]?.id);
+        return (
+          <div key={layer.id} className={`layer ${selected ? "selected" : ""}`}>
+            <button
+              type="button"
+              className="layer-title"
+              onClick={() => set({ selectedLayerId: layer.id, selectedSublayerId: null })}
+            >
+              <input
+                type="checkbox"
+                checked={layer.visible}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) =>
+                  update((d) => {
+                    const l = d.layers.find((x) => x.id === layer.id);
+                    if (l) l.visible = e.target.checked;
+                  })
+                }
+              />
+              <strong>{layer.name}</strong>
+              <span className="tag">{layer.kind}</span>
+            </button>
+            {layer.kind === "heightfield" && selected && (
+              <SublayerList layer={layer} selectedSublayerId={selectedSublayerId} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SublayerList(props: { layer: HeightfieldLayer; selectedSublayerId: string | null }) {
+  const update = useDocStore((s) => s.update);
+  const set = useUiStore((s) => s.set);
+  const { layer } = props;
+
+  const mutateLayer = (fn: (l: HeightfieldLayer) => void) =>
+    update((d) => {
+      const l = d.layers.find((x) => x.id === layer.id);
+      if (l?.kind === "heightfield") fn(l);
+    });
+
+  // Top of stack first.
+  const subs = layer.heightmap.sublayers.slice().reverse();
+
+  return (
+    <div className="sublayers">
+      {subs.map((sub) => (
+        <div
+          key={sub.id}
+          className={`sublayer ${sub.id === props.selectedSublayerId ? "selected" : ""}`}
+        >
+          <button
+            type="button"
+            className="sublayer-title"
+            onClick={() => set({ selectedLayerId: layer.id, selectedSublayerId: sub.id })}
+          >
+            <input
+              type="checkbox"
+              checked={sub.enabled}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) =>
+                mutateLayer((l) => {
+                  const s = l.heightmap.sublayers.find((x) => x.id === sub.id);
+                  if (s) s.enabled = e.target.checked;
+                })
+              }
+            />
+            <span>{sub.name}</span>
+            <span className="tag">{sub.kind}</span>
+            <span
+              className="delete"
+              title="Delete sublayer"
+              onClick={(e) => {
+                e.stopPropagation();
+                mutateLayer((l) => {
+                  l.heightmap.sublayers = l.heightmap.sublayers.filter((x) => x.id !== sub.id);
+                });
+              }}
+            >
+              ×
+            </span>
+          </button>
+          {sub.id === props.selectedSublayerId && (
+            <div className="sublayer-controls">
+              <SelectField
+                label="Blend"
+                value={sub.blend}
+                options={BLEND_MODES}
+                onChange={(blend) =>
+                  mutateLayer((l) => {
+                    const s = l.heightmap.sublayers.find((x) => x.id === sub.id);
+                    if (s) s.blend = blend;
+                  })
+                }
+              />
+              <SliderField
+                label="Strength"
+                value={sub.strength}
+                min={0}
+                max={1}
+                onChange={(strength) =>
+                  mutateLayer((l) => {
+                    const s = l.heightmap.sublayers.find((x) => x.id === sub.id);
+                    if (s) s.strength = strength;
+                  })
+                }
+              />
+            </div>
+          )}
+        </div>
+      ))}
+      <div className="add-row">
+        <button
+          type="button"
+          onClick={() =>
+            mutateLayer((l) => {
+              l.heightmap.sublayers.push({
+                ...defaultNoiseSublayer(Math.floor(Math.random() * 10_000)),
+                name: `Noise ${l.heightmap.sublayers.length + 1}`,
+              });
+            })
+          }
+        >
+          + noise
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            mutateLayer((l) => {
+              l.heightmap.sublayers.push({
+                ...defaultPaintSublayer(l.heightmap.resolution),
+                name: `Paint ${l.heightmap.sublayers.length + 1}`,
+              });
+            })
+          }
+        >
+          + paint
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            mutateLayer((l) => {
+              l.heightmap.sublayers.push({
+                id: newId("sub"),
+                name: `Gradient ${l.heightmap.sublayers.length + 1}`,
+                enabled: true,
+                kind: "gradient",
+                blend: "multiply",
+                strength: 1,
+                shape: "radial",
+                from: [0.5, 0.5],
+                to: [1, 0.5],
+              });
+            })
+          }
+        >
+          + gradient
+        </button>
+      </div>
+    </div>
+  );
+}

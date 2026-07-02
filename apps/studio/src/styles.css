@@ -1,15 +1,33 @@
+/* ── Workshop-bench identity ───────────────────────────────────────────────
+   The canvas is a cutting mat; panels are chipboard; paper is cardstock.
+   Every measurement is set in mono, like a CAD readout.                      */
+
 * {
   box-sizing: border-box;
 }
 
 :root {
-  --bg: #1b1e24;
-  --panel: #22262d;
-  --panel2: #292e37;
-  --border: #343a45;
-  --text: #d7dce3;
-  --dim: #8b93a1;
-  --accent: #e8a33d;
+  --mat: #16342e; /* cutting-mat teal — canvas ground */
+  --mat-well: #102621; /* deeper mat, behind a canvas */
+  --mat-grid: #234a41; /* mat measurement grid */
+  --chipboard: #1e1b18; /* panels / chrome */
+  --chipboard-2: #2a2621; /* raised controls */
+  --edge: #3a342c; /* kraft-board borders */
+  --edge-strong: #4f4739;
+  --ink: #ede6d6; /* cardstock cream — primary text */
+  --ink-dim: #9d968a; /* secondary text */
+  --kraft: #c8a97e; /* warm accent / primary action */
+  --kraft-deep: #a5865b;
+  --card: #ede6d6; /* cardstock surfaces */
+  --blade: #ff5a3c; /* cut lines, destructive, critical warnings */
+  --warn: #e0a24e; /* soft warnings */
+  --family-a: #e8a33d;
+  --family-b: #4d9de0;
+
+  --radius: 5px;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+  --cond: "IBM Plex Sans Condensed", var(--sans);
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 }
 
 html,
@@ -17,9 +35,10 @@ body,
 #root {
   margin: 0;
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font: 13px / 1.45 system-ui, sans-serif;
+  background: var(--mat);
+  color: var(--ink);
+  font: 13px / 1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
 }
 
 .app {
@@ -28,29 +47,42 @@ body,
   height: 100%;
 }
 
+/* ── Top bar ── */
 .toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: var(--chipboard);
+  border-bottom: 1px solid var(--edge);
 }
 
 .brand {
-  font-weight: 700;
-  color: var(--accent);
-  margin-right: 8px;
+  font-family: var(--cond);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--kraft);
+  margin-right: 6px;
   white-space: nowrap;
+}
+.brand::before {
+  content: "▤ ";
+  color: var(--kraft-deep);
 }
 
 .doc-name {
-  background: var(--panel2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 4px;
+  background: var(--mat-well);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+  border-radius: var(--radius);
   padding: 4px 8px;
   width: 180px;
+  font-family: var(--sans);
+}
+.doc-name:focus {
+  outline: none;
+  border-color: var(--kraft);
 }
 
 .tabs {
@@ -63,31 +95,42 @@ body,
   flex: 1;
 }
 
+/* ── Buttons ── */
 button {
-  background: var(--panel2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 4px;
+  background: var(--chipboard-2);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+  border-radius: var(--radius);
   padding: 4px 10px;
   cursor: pointer;
+  font-family: var(--sans);
+  font-size: 12px;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
-
 button:hover {
-  border-color: var(--dim);
+  border-color: var(--edge-strong);
 }
-
+button:focus-visible {
+  outline: 2px solid var(--kraft);
+  outline-offset: 1px;
+}
 button.active {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--kraft);
+  color: var(--kraft);
+  background: color-mix(in srgb, var(--kraft) 12%, var(--chipboard-2));
 }
-
 button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #1b1e24;
+  background: var(--kraft);
+  border-color: var(--kraft);
+  color: var(--chipboard);
   font-weight: 600;
 }
+button.primary:hover {
+  background: var(--kraft-deep);
+  border-color: var(--kraft-deep);
+}
 
+/* ── Body regions ── */
 .body {
   display: flex;
   flex: 1;
@@ -98,44 +141,44 @@ button.primary {
 .right {
   width: 250px;
   overflow-y: auto;
-  background: var(--panel);
+  background: var(--chipboard);
   padding: 10px;
 }
-
 .left {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--edge);
 }
-
 .right {
-  width: 280px;
-  border-left: 1px solid var(--border);
+  width: 288px;
+  border-left: 1px solid var(--edge);
 }
 
 .center {
   flex: 1;
   display: flex;
   min-width: 0;
+  background: var(--mat);
 }
 
 h2 {
-  font-size: 12px;
+  font-family: var(--cond);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--dim);
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
   margin: 4px 0 10px;
 }
 
+/* ── Layers / sublayers ── */
 .layer,
 .sublayer {
-  border: 1px solid var(--border);
-  border-radius: 5px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
   margin-bottom: 6px;
-  background: var(--panel2);
+  background: var(--chipboard-2);
 }
-
 .layer.selected,
 .sublayer.selected {
-  border-color: var(--accent);
+  border-color: var(--kraft);
 }
 
 .layer-title,
@@ -149,27 +192,33 @@ h2 {
   padding: 6px 8px;
   text-align: left;
 }
+.layer-title:hover,
+.sublayer-title:hover {
+  background: color-mix(in srgb, var(--kraft) 8%, transparent);
+}
 
 .sublayers {
   padding: 4px 6px 6px 14px;
 }
 
 .tag {
-  font-size: 10px;
-  color: var(--dim);
-  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  border: 1px solid var(--edge);
   border-radius: 3px;
-  padding: 0 4px;
+  padding: 1px 4px;
   margin-left: auto;
 }
 
 .delete {
-  color: var(--dim);
+  color: var(--ink-dim);
   padding: 0 4px;
 }
-
 .delete:hover {
-  color: #e05252;
+  color: var(--blade);
 }
 
 .sublayer-controls {
@@ -181,38 +230,50 @@ h2 {
   gap: 4px;
   margin-top: 4px;
 }
-
 .add-row button {
   font-size: 11px;
   padding: 2px 8px;
 }
 
+/* ── Fields ── */
 .field {
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-bottom: 8px;
 }
-
 .field span {
-  color: var(--dim);
+  color: var(--ink-dim);
   font-size: 11px;
+  display: flex;
+  justify-content: space-between;
 }
-
 .field em {
   font-style: normal;
-  color: var(--text);
+  font-family: var(--mono);
+  color: var(--kraft);
 }
-
 .field input,
 .field select {
-  background: var(--panel2);
-  border: 1px solid var(--border);
-  color: var(--text);
+  background: var(--mat-well);
+  border: 1px solid var(--edge);
+  color: var(--ink);
   border-radius: 4px;
   padding: 3px 6px;
+  font-family: var(--sans);
 }
-
+.field input[type="number"] {
+  font-family: var(--mono);
+}
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--kraft);
+}
+.field input[type="range"] {
+  accent-color: var(--kraft);
+  padding: 0;
+}
 .field.inline {
   flex-direction: row;
   align-items: center;
@@ -220,44 +281,55 @@ h2 {
   margin: 0;
 }
 
+/* ── Inspector sections ── */
 .section {
-  border: 1px solid var(--border);
-  border-radius: 5px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
   margin-bottom: 8px;
-  background: var(--panel2);
+  background: var(--chipboard-2);
 }
-
 .section summary {
   padding: 6px 8px;
   cursor: pointer;
+  font-family: var(--cond);
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
-
+.section summary::marker {
+  color: var(--kraft-deep);
+}
 .section-body {
   padding: 4px 10px 8px;
 }
 
 .family {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--edge);
   padding-top: 6px;
   margin-top: 6px;
 }
+.family strong {
+  font-family: var(--cond);
+  letter-spacing: 0.02em;
+}
 
 .stat {
-  font-weight: 600;
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--card);
 }
 
 .warning {
-  color: #e0a052;
+  color: var(--warn);
   font-size: 12px;
   margin: 4px 0;
 }
 
 .hint {
-  color: var(--dim);
+  color: var(--ink-dim);
   font-size: 11px;
 }
 
+/* ── Center editors ── */
 .editor2d,
 .preview3d {
   display: flex;
@@ -271,10 +343,15 @@ h2 {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: var(--chipboard);
+  border-bottom: 1px solid var(--edge);
+}
+.editor2d-toolbar .hint {
+  font-family: var(--mono);
+  font-size: 10px;
 }
 
+/* Cutting-mat surface behind the 2D canvas */
 .canvas-wrap {
   position: relative;
   flex: 1;
@@ -282,7 +359,12 @@ h2 {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 16px;
+  padding: 24px;
+  background-color: var(--mat-well);
+  background-image: linear-gradient(var(--mat-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mat-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center;
 }
 
 .canvas-inner {
@@ -291,6 +373,7 @@ h2 {
   aspect-ratio: 1;
   max-width: 100%;
   max-height: 100%;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
 
 .canvas-wrap canvas {
@@ -298,41 +381,45 @@ h2 {
   height: 100%;
   aspect-ratio: 1;
   image-rendering: pixelated;
-  border: 1px solid var(--border);
+  border: 1px solid var(--edge-strong);
   cursor: crosshair;
   touch-action: none;
 }
 
 .brush-cursor {
   position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--card);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  mix-blend-mode: difference;
 }
 
 .preview3d canvas {
   flex: 1;
 }
 
+/* ── Modal ── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(8, 16, 14, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 20;
 }
-
 .modal {
-  background: var(--panel);
-  border: 1px solid var(--border);
+  background: var(--chipboard);
+  border: 1px solid var(--edge-strong);
   border-radius: 8px;
   padding: 18px 22px;
-  width: 440px;
+  width: 460px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
-
+.modal h2 {
+  margin-top: 0;
+}
 .modal-buttons {
   display: flex;
   gap: 8px;
@@ -342,5 +429,5 @@ h2 {
 .editor2d.empty {
   align-items: center;
   justify-content: center;
-  color: var(--dim);
+  color: var(--ink-dim);
 }

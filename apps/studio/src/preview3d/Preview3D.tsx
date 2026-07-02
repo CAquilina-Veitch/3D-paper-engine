@@ -46,7 +46,7 @@ export function Preview3D() {
       </div>
       <Canvas
         camera={{ position: [cx + 160, 150, cz + 190], fov: 40, near: 1, far: 4000 }}
-        style={{ background: "#15181d" }}
+        style={{ background: "#102621" }}
       >
         <ambientLight intensity={0.7} />
         <directionalLight position={[200, 400, 100]} intensity={1.4} />
@@ -54,7 +54,7 @@ export function Preview3D() {
         <group position={[0, 0, 0]}>
           {ui.previewMode === "smooth" ? <SmoothMesh /> : <SlicedPieces explode={ui.explode} />}
           <gridHelper
-            args={[Math.max(doc.world.width, doc.world.depth) * 2, 20, "#3a4048", "#23272e"]}
+            args={[Math.max(doc.world.width, doc.world.depth) * 2, 20, "#2f5a4f", "#1c3b34"]}
             position={[cx, -doc.print.basePedestal - 1, cz]}
           />
         </group>

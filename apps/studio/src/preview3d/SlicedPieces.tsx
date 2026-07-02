@@ -5,7 +5,7 @@ import { useDocStore } from "../state/docStore";
 import { useSliceStore } from "../state/engineClient";
 
 const FAMILY_COLORS = ["#e8a33d", "#4d9de0", "#7bc86c", "#c678dd"];
-const WARNING_COLOR = "#e05252";
+const WARNING_COLOR = "#ff5a3c";
 
 /**
  * The actual sliced pieces, extruded to paper thickness and stood on their

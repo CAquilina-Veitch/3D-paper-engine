@@ -2,6 +2,7 @@ import type { HeightfieldLayer, NoiseAlgo, SlotOpening, Sublayer } from "@paper3
 import { NumberField, Section, SelectField, SliderField } from "../components/fields";
 import { useDocStore } from "../state/docStore";
 import { useSliceStore } from "../state/engineClient";
+import { MATERIAL_PRESETS, buildStats } from "../state/stats";
 import { useUiStore } from "../state/uiStore";
 
 const NOISE_ALGOS: readonly NoiseAlgo[] = ["simplex", "perlin", "fbm", "ridged", "voronoi"];
@@ -12,6 +13,10 @@ export function Inspector() {
   const update = useDocStore((s) => s.update);
   const { selectedLayerId, selectedSublayerId } = useUiStore();
   const result = useSliceStore((s) => s.result);
+  const stats = buildStats(result);
+  const currentMaterial =
+    MATERIAL_PRESETS.find((p) => Math.abs(p.thickness - doc.print.paperThickness) < 1e-6)?.name ??
+    "Custom";
 
   const layer =
     (doc.layers.find((l) => l.id === selectedLayerId) as HeightfieldLayer | undefined) ??
@@ -110,6 +115,27 @@ export function Inspector() {
       </Section>
 
       <Section title="Print">
+        <label className="field">
+          <span>Material</span>
+          <select
+            value={currentMaterial}
+            onChange={(e) => {
+              const preset = MATERIAL_PRESETS.find((p) => p.name === e.target.value);
+              if (preset)
+                update((d) => {
+                  d.print.paperThickness = preset.thickness;
+                  d.print.kerf = preset.kerf;
+                });
+            }}
+          >
+            {MATERIAL_PRESETS.map((p) => (
+              <option key={p.name} value={p.name}>
+                {p.name}
+              </option>
+            ))}
+            <option value="Custom">Custom…</option>
+          </select>
+        </label>
         <NumberField
           label="Paper thickness (mm)"
           value={doc.print.paperThickness}
@@ -133,11 +159,18 @@ export function Inspector() {
         />
       </Section>
 
-      {result && (
-        <Section title="Output">
-          <p className="stat">
-            {result.model.pieces.length} pieces · {result.layout.pageCount} A4 pages
-          </p>
+      {result && stats && (
+        <Section title="Build">
+          <div className="stats-grid">
+            <span className="stat-label">Pieces</span>
+            <span className="stat">{stats.pieces}</span>
+            <span className="stat-label">Sheets</span>
+            <span className="stat">{stats.sheets} + calibration</span>
+            <span className="stat-label">Cut length</span>
+            <span className="stat">{(stats.cutLengthMm / 1000).toFixed(1)} m</span>
+            <span className="stat-label">Assembly</span>
+            <span className="stat">~{stats.estAssemblyMin} min</span>
+          </div>
           {warningSummary(result.model).map((w) => (
             <p key={w} className="warning">
               ⚠ {w}

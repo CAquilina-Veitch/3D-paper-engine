@@ -329,6 +329,85 @@ h2 {
   font-size: 11px;
 }
 
+/* ── Workspace panes ── */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace.split .pane-major {
+  flex: 2.2;
+}
+.workspace.split .pane-minor {
+  flex: 1;
+  border-left: 1px solid var(--edge);
+  min-width: 260px;
+}
+.pane {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Build stats ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  margin-bottom: 6px;
+}
+.stat-label {
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+.stats-grid .stat {
+  text-align: right;
+}
+
+/* ── In-app print preview ── */
+.print-preview {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background-color: var(--mat-well);
+  background-image: linear-gradient(var(--mat-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mat-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.print-preview.empty {
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-dim);
+  font-family: var(--mono);
+}
+.print-page {
+  margin: 0;
+  width: 100%;
+  max-width: 520px;
+}
+.print-page-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  margin-bottom: 5px;
+}
+.print-page-svg {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--edge-strong);
+  line-height: 0;
+}
+.print-page-svg svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 /* ── Center editors ── */
 .editor2d,
 .preview3d {

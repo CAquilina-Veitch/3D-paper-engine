@@ -181,7 +181,65 @@ h2 {
   border-color: var(--kraft);
 }
 
-.layer-title,
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.add-layer {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.layer-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 8px;
+}
+.layer-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  text-align: left;
+}
+.layer-name strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.layer-mode {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--kraft);
+}
+.layer-actions {
+  display: flex;
+  gap: 1px;
+}
+.layer-actions button {
+  padding: 1px 5px;
+  font-size: 10px;
+  background: none;
+  border: none;
+  color: var(--ink-dim);
+}
+.layer-actions button:hover:not(:disabled) {
+  color: var(--ink);
+}
+.layer-actions button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.layer-actions .del:hover:not(:disabled) {
+  color: var(--blade);
+}
+
 .sublayer-title {
   display: flex;
   align-items: center;
@@ -192,13 +250,15 @@ h2 {
   padding: 6px 8px;
   text-align: left;
 }
-.layer-title:hover,
 .sublayer-title:hover {
   background: color-mix(in srgb, var(--kraft) 8%, transparent);
 }
 
+/* Sublayers nest under their layer with a hierarchy rail. */
 .sublayers {
-  padding: 4px 6px 6px 14px;
+  padding: 2px 6px 6px 10px;
+  margin: 0 6px 6px 14px;
+  border-left: 2px solid var(--edge);
 }
 
 .tag {

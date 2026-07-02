@@ -98,6 +98,15 @@ export function defaultTerrainLayer(): HeightfieldLayer {
   };
 }
 
+/** A fresh heightfield smart layer to stack on an existing scene. */
+export function newHeightfieldLayer(name: string, seed = 2): HeightfieldLayer {
+  const layer = defaultTerrainLayer();
+  layer.name = name;
+  const noise = layer.heightmap.sublayers.find((s) => s.kind === "noise");
+  if (noise?.kind === "noise") noise.seed = seed;
+  return layer;
+}
+
 export function defaultDoc(): Doc {
   return {
     version: 1,

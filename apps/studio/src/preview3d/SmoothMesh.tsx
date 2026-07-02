@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 import { useDocStore } from "../state/docStore";
 import { getCompositor, useFieldStore } from "../state/fieldStore";
+import { useUiStore } from "../state/uiStore";
 
 const SEGMENTS = 128;
 
@@ -12,9 +13,12 @@ export function SmoothMesh() {
   const doc = useDocStore((s) => s.doc);
   const version = useFieldStore((s) => s.version);
 
-  const layer = doc.layers.find(
+  const selectedId = useUiStore((s) => s.selectedLayerId);
+  const layers = doc.layers.filter(
     (l): l is HeightfieldLayer => l.kind === "heightfield" && l.visible,
   );
+  // Show the layer being edited; fall back to the top visible heightfield.
+  const layer = layers.find((l) => l.id === selectedId) ?? layers[layers.length - 1];
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();

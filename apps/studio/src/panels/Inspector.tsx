@@ -23,10 +23,18 @@ export function Inspector() {
     (doc.layers[doc.layers.length - 1] as HeightfieldLayer | undefined);
   const sublayer = layer?.heightmap.sublayers.find((s) => s.id === selectedSublayerId);
 
+  const layerIndex = layer ? doc.layers.findIndex((l) => l.id === layer.id) : -1;
+
   const mutateLayer = (fn: (l: HeightfieldLayer) => void) =>
     update((d) => {
       const l = d.layers.find((x) => x.id === layer?.id);
       if (l?.kind === "heightfield") fn(l);
+    });
+
+  const mutateLayerBase = (fn: (l: (typeof doc.layers)[number]) => void) =>
+    update((d) => {
+      const l = d.layers.find((x) => x.id === layer?.id);
+      if (l) fn(l);
     });
 
   return (
@@ -37,7 +45,25 @@ export function Inspector() {
 
       {layer && (
         <>
-          <Section title={`${layer.name} — shape`}>
+          <Section title={`${layer.name} — layer`}>
+            <label className="field">
+              <span>Name</span>
+              <input
+                type="text"
+                value={layer.name}
+                onChange={(e) => mutateLayerBase((l) => (l.name = e.target.value))}
+              />
+            </label>
+            {layerIndex > 0 ? (
+              <SelectField
+                label="Combine with below"
+                value={layer.interaction}
+                options={["merge", "cut", "intersect", "none"] as const}
+                onChange={(v) => mutateLayerBase((l) => (l.interaction = v))}
+              />
+            ) : (
+              <p className="hint">Base layer — stacked layers above combine onto this one.</p>
+            )}
             <Scrubber
               label="Height scale (mm)"
               value={layer.heightScale}

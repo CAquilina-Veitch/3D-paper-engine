@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDocStore } from "../../state/docStore";
 import { getCompositor, useFieldStore } from "../../state/fieldStore";
 import { useUiStore } from "../../state/uiStore";
+import { Ruler } from "./Ruler";
 import { paintFieldToCanvas } from "./colormap";
 import { Stroke } from "./paint";
 
@@ -35,6 +36,19 @@ export function Editor2D() {
   }, [layer, res, ui.shading, version]);
 
   if (!layer) return <div className="editor2d empty">No heightfield layer</div>;
+
+  // Live readout: cursor position in world mm + terrain height under it.
+  let readout: { x: number; z: number; h: number } | null = null;
+  if (cursor) {
+    const fx = Math.min(res - 1, Math.max(0, Math.round(cursor[0])));
+    const fy = Math.min(res - 1, Math.max(0, Math.round(cursor[1])));
+    const h = (getCompositor(layer).field[fy * res + fx] ?? 0) * layer.heightScale;
+    readout = {
+      x: (cursor[0] / res) * doc.world.width,
+      z: (cursor[1] / res) * doc.world.depth,
+      h,
+    };
+  }
 
   const toField = (e: React.PointerEvent<HTMLCanvasElement>): [number, number] => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -69,6 +83,8 @@ export function Editor2D() {
       </div>
       <div className="canvas-wrap">
         <div className="canvas-inner">
+          <Ruler extentMm={doc.world.width} orientation="top" />
+          <Ruler extentMm={doc.world.depth} orientation="left" />
           <canvas
             ref={canvasRef}
             width={res}
@@ -107,6 +123,12 @@ export function Editor2D() {
                 height: `${(ui.brushSize / res) * 200}%`,
               }}
             />
+          )}
+          {readout && (
+            <div className="cursor-readout">
+              x {readout.x.toFixed(0)} · z {readout.z.toFixed(0)} · h {readout.h.toFixed(1)}
+              <span className="unit"> mm</span>
+            </div>
           )}
         </div>
       </div>

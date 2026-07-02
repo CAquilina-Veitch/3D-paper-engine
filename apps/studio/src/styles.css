@@ -438,7 +438,8 @@ h2 {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 24px;
+  /* extra left/top room for the edge rulers + their labels */
+  padding: 34px 26px 26px 46px;
   background-color: var(--mat-well);
   background-image: linear-gradient(var(--mat-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--mat-grid) 1px, transparent 1px);
@@ -472,6 +473,77 @@ h2 {
   transform: translate(-50%, -50%);
   pointer-events: none;
   mix-blend-mode: difference;
+}
+
+/* ── Mat rulers (world-mm measuring surface) ── */
+.ruler {
+  position: absolute;
+  pointer-events: none;
+  color: var(--kraft);
+}
+.ruler-top {
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 14px;
+}
+.ruler-left {
+  left: -18px;
+  top: 0;
+  bottom: 0;
+  width: 16px;
+}
+.ruler .tick {
+  position: absolute;
+  background: var(--kraft-deep);
+}
+.ruler-top .tick {
+  bottom: 0;
+  width: 1px;
+  height: 5px;
+  transform: translateX(-0.5px);
+}
+.ruler-left .tick {
+  right: 0;
+  height: 1px;
+  width: 5px;
+  transform: translateY(-0.5px);
+}
+.tick-label {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 8px;
+  line-height: 1;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.ruler-top .tick-label {
+  bottom: 6px;
+  left: 0;
+  transform: translateX(-50%);
+}
+.ruler-left .tick-label {
+  right: 7px;
+  top: 0;
+  transform: translateY(-50%);
+}
+
+/* Live cursor readout — world mm + terrain height */
+.cursor-readout {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--chipboard) 82%, transparent);
+  border: 1px solid var(--edge);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--card);
+  pointer-events: none;
+}
+.cursor-readout .unit {
+  color: var(--ink-dim);
 }
 
 .preview3d canvas {

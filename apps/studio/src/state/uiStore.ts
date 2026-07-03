@@ -3,10 +3,12 @@ import { create } from "zustand";
 export type Workspace = "sculpt" | "slice" | "print";
 export type PreviewMode = "smooth" | "sliced";
 export type MapShading = "gray" | "hypso";
+export type ObjectTool = "select" | "rect" | "circle" | "polygon";
 
 interface UiState {
   workspace: Workspace;
   previewMode: PreviewMode;
+  objectTool: ObjectTool;
   explode: number;
   shading: MapShading;
   selectedLayerId: string | null;
@@ -23,6 +25,7 @@ interface UiState {
 export const useUiStore = create<UiState>()((set) => ({
   workspace: "sculpt",
   previewMode: "sliced",
+  objectTool: "select",
   explode: 0,
   shading: "hypso",
   selectedLayerId: null,

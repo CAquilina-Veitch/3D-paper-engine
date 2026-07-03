@@ -1,10 +1,11 @@
 import type { Doc, SmartLayer } from "@paper3d/model";
 import { type ColumnSampler, intervalIntersect, intervalSubtract } from "./columns";
 import { type SolidContext, heightfieldSampler } from "./heightfield";
+import { objectSampler } from "./object";
 
 function baseSampler(ctx: SolidContext, layer: SmartLayer): ColumnSampler {
   if (layer.kind === "heightfield") return heightfieldSampler(ctx, layer);
-  throw new Error(`layer kind ${layer.kind} not implemented yet`);
+  return objectSampler(ctx.doc.world, layer);
 }
 
 /**

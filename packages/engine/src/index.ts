@@ -5,6 +5,7 @@ export * from "./field/sampler";
 export * from "./field/compositeDoc";
 export * from "./solid/columns";
 export * from "./solid/heightfield";
+export * from "./solid/object";
 export * from "./solid/combine";
 export * from "./geom2/types";
 export * from "./geom2/boolean2d";

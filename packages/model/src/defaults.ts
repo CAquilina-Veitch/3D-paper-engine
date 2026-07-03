@@ -2,8 +2,10 @@ import type {
   Doc,
   HeightfieldLayer,
   NoiseSublayer,
+  ObjectLayer,
   PaintSublayer,
   PrintSettings,
+  Ring2,
   SlicingStrategy,
 } from "./doc";
 
@@ -105,6 +107,50 @@ export function newHeightfieldLayer(name: string, seed = 2): HeightfieldLayer {
   const noise = layer.heightmap.sublayers.find((s) => s.kind === "noise");
   if (noise?.kind === "noise") noise.seed = seed;
   return layer;
+}
+
+/**
+ * A fresh object layer, pre-loaded with a little house so the three-view
+ * intersection is legible immediately: a rectangular footprint, and a
+ * walls-plus-gable silhouette in both front and side. Intersecting the two
+ * gables yields a hip roof.
+ */
+export function newObjectLayer(name: string, world: { width: number; depth: number }): ObjectLayer {
+  const size = { width: 60, height: 50, depth: 80 };
+  const silhouette = (span: number): Ring2 => [
+    [4, 0],
+    [span - 4, 0],
+    [span - 4, 30],
+    [span / 2, 50],
+    [4, 30],
+  ];
+  return {
+    id: newId("layer"),
+    name,
+    kind: "object",
+    visible: true,
+    locked: false,
+    interaction: "merge",
+    transform: {
+      x: Math.max(0, (world.width - size.width) / 2),
+      z: Math.max(0, (world.depth - size.depth) / 2),
+      rotY: 0,
+    },
+    size,
+    top: {
+      shapes: [
+        [
+          [4, 4],
+          [size.width - 4, 4],
+          [size.width - 4, size.depth - 4],
+          [4, size.depth - 4],
+        ],
+      ],
+    },
+    front: { shapes: [silhouette(size.width)] },
+    side: { shapes: [silhouette(size.depth)] },
+    slicing: eggCrateStrategy(8),
+  };
 }
 
 export function defaultDoc(): Doc {

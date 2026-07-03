@@ -5,6 +5,7 @@ import {
   defaultPaintSublayer,
   newHeightfieldLayer,
   newId,
+  newObjectLayer,
 } from "@paper3d/model";
 import { SelectField, SliderField } from "../components/fields";
 import { useDocStore } from "../state/docStore";
@@ -36,6 +37,14 @@ export function LayersPanel() {
     set({ selectedLayerId: layer.id, selectedSublayerId: null });
   };
 
+  const addObject = () => {
+    const layer = newObjectLayer(`Object ${doc.layers.length + 1}`, doc.world);
+    update((d) => {
+      d.layers.push(layer);
+    });
+    set({ selectedLayerId: layer.id, selectedSublayerId: null });
+  };
+
   // delta +1 moves the layer up the stack (toward the top of the panel).
   const moveLayer = (id: string, delta: number) =>
     update((d) => {
@@ -58,9 +67,24 @@ export function LayersPanel() {
     <div className="layers-panel">
       <div className="panel-head">
         <h2>Layers</h2>
-        <button type="button" className="add-layer" title="Add a terrain layer" onClick={addLayer}>
-          + Layer
-        </button>
+        <span className="add-buttons">
+          <button
+            type="button"
+            className="add-layer"
+            title="Add a terrain layer"
+            onClick={addLayer}
+          >
+            + Terrain
+          </button>
+          <button
+            type="button"
+            className="add-layer"
+            title="Add an object layer"
+            onClick={addObject}
+          >
+            + Object
+          </button>
+        </span>
       </div>
       {ordered.map((layer) => {
         const selected = layer.id === selectedId;
@@ -86,6 +110,7 @@ export function LayersPanel() {
                 onClick={() => set({ selectedLayerId: layer.id, selectedSublayerId: null })}
               >
                 <strong>{layer.name}</strong>
+                {layer.kind === "object" && <span className="kind-tag">obj</span>}
                 <span className="layer-mode" title={`Combines with below: ${layer.interaction}`}>
                   {isBase ? "base" : INTERACTION_GLYPH[layer.interaction]}
                 </span>

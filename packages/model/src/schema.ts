@@ -96,6 +96,9 @@ const layerBase = {
   transform: z.object({ x: z.number(), z: z.number(), rotY: z.number() }),
 };
 
+const ring2Schema = z.array(z.tuple([z.number(), z.number()]));
+const objectProfileSchema = z.object({ shapes: z.array(ring2Schema) });
+
 const layerSchema = z.discriminatedUnion("kind", [
   z.object({
     ...layerBase,
@@ -108,7 +111,18 @@ const layerSchema = z.discriminatedUnion("kind", [
     }),
     heightScale: z.number().positive(),
   }),
-  z.object({ ...layerBase, kind: z.literal("object") }),
+  z.object({
+    ...layerBase,
+    kind: z.literal("object"),
+    size: z.object({
+      width: z.number().positive(),
+      height: z.number().positive(),
+      depth: z.number().positive(),
+    }),
+    top: objectProfileSchema,
+    front: objectProfileSchema,
+    side: objectProfileSchema,
+  }),
 ]);
 
 export const docJsonSchema = z.object({

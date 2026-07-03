@@ -1,4 +1,11 @@
-import type { HeightfieldLayer, NoiseAlgo, SlotOpening, Sublayer } from "@paper3d/model";
+import type {
+  HeightfieldLayer,
+  NoiseAlgo,
+  ObjectLayer,
+  SlotOpening,
+  SmartLayer,
+  Sublayer,
+} from "@paper3d/model";
 import { Scrubber, Section, SelectField, SliderField } from "../components/fields";
 import { useDocStore } from "../state/docStore";
 import { useSliceStore } from "../state/engineClient";
@@ -18,63 +25,114 @@ export function Inspector() {
     MATERIAL_PRESETS.find((p) => Math.abs(p.thickness - doc.print.paperThickness) < 1e-6)?.name ??
     "Custom";
 
-  const layer =
-    (doc.layers.find((l) => l.id === selectedLayerId) as HeightfieldLayer | undefined) ??
-    (doc.layers[doc.layers.length - 1] as HeightfieldLayer | undefined);
-  const sublayer = layer?.heightmap.sublayers.find((s) => s.id === selectedSublayerId);
+  const selectedLayer: SmartLayer | undefined =
+    doc.layers.find((l) => l.id === selectedLayerId) ?? doc.layers.at(-1);
+  const hf = selectedLayer?.kind === "heightfield" ? selectedLayer : undefined;
+  const obj = selectedLayer?.kind === "object" ? selectedLayer : undefined;
+  const sublayer = hf?.heightmap.sublayers.find((s) => s.id === selectedSublayerId);
 
-  const layerIndex = layer ? doc.layers.findIndex((l) => l.id === layer.id) : -1;
+  const layerIndex = selectedLayer ? doc.layers.findIndex((l) => l.id === selectedLayer.id) : -1;
 
-  const mutateLayer = (fn: (l: HeightfieldLayer) => void) =>
+  const mutateBase = (fn: (l: SmartLayer) => void) =>
     update((d) => {
-      const l = d.layers.find((x) => x.id === layer?.id);
+      const l = d.layers.find((x) => x.id === selectedLayer?.id);
+      if (l) fn(l);
+    });
+  const mutateHf = (fn: (l: HeightfieldLayer) => void) =>
+    update((d) => {
+      const l = d.layers.find((x) => x.id === selectedLayer?.id);
       if (l?.kind === "heightfield") fn(l);
     });
-
-  const mutateLayerBase = (fn: (l: (typeof doc.layers)[number]) => void) =>
+  const mutateObj = (fn: (l: ObjectLayer) => void) =>
     update((d) => {
-      const l = d.layers.find((x) => x.id === layer?.id);
-      if (l) fn(l);
+      const l = d.layers.find((x) => x.id === selectedLayer?.id);
+      if (l?.kind === "object") fn(l);
     });
 
   return (
     <div className="inspector">
       <h2>Inspector</h2>
 
-      {sublayer && layer && <SublayerInspector layer={layer} sublayer={sublayer} />}
+      {sublayer && hf && <SublayerInspector layer={hf} sublayer={sublayer} />}
 
-      {layer && (
+      {selectedLayer && (
         <>
-          <Section title={`${layer.name} — layer`}>
+          <Section title={`${selectedLayer.name} — layer`}>
             <label className="field">
               <span>Name</span>
               <input
                 type="text"
-                value={layer.name}
-                onChange={(e) => mutateLayerBase((l) => (l.name = e.target.value))}
+                value={selectedLayer.name}
+                onChange={(e) => mutateBase((l) => (l.name = e.target.value))}
               />
             </label>
             {layerIndex > 0 ? (
               <SelectField
                 label="Combine with below"
-                value={layer.interaction}
+                value={selectedLayer.interaction}
                 options={["merge", "cut", "intersect", "none"] as const}
-                onChange={(v) => mutateLayerBase((l) => (l.interaction = v))}
+                onChange={(v) => mutateBase((l) => (l.interaction = v))}
               />
             ) : (
               <p className="hint">Base layer — stacked layers above combine onto this one.</p>
             )}
-            <Scrubber
-              label="Height scale (mm)"
-              value={layer.heightScale}
-              min={1}
-              precision={0}
-              onChange={(v) => mutateLayer((l) => (l.heightScale = v))}
-            />
+            {hf && (
+              <Scrubber
+                label="Height scale (mm)"
+                value={hf.heightScale}
+                min={1}
+                precision={0}
+                onChange={(v) => mutateHf((l) => (l.heightScale = v))}
+              />
+            )}
+            {obj && (
+              <>
+                <Scrubber
+                  label="Width (mm)"
+                  value={obj.size.width}
+                  min={5}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.size.width = v))}
+                />
+                <Scrubber
+                  label="Height (mm)"
+                  value={obj.size.height}
+                  min={5}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.size.height = v))}
+                />
+                <Scrubber
+                  label="Depth (mm)"
+                  value={obj.size.depth}
+                  min={5}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.size.depth = v))}
+                />
+                <Scrubber
+                  label="Position X (mm)"
+                  value={obj.transform.x}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.transform.x = v))}
+                />
+                <Scrubber
+                  label="Position Z (mm)"
+                  value={obj.transform.z}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.transform.z = v))}
+                />
+                <Scrubber
+                  label="Rotation (°)"
+                  value={obj.transform.rotY}
+                  step={5}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.transform.rotY = v))}
+                />
+              </>
+            )}
           </Section>
 
           <Section title="Cross sections">
-            {layer.slicing.families.map((family, i) => (
+            {selectedLayer.slicing.families.map((family, i) => (
               <div key={family.id} className="family">
                 <strong>Family {"AB"[i] ?? i + 1}</strong>
                 <Scrubber
@@ -83,7 +141,7 @@ export function Inspector() {
                   step={1}
                   precision={0}
                   onChange={(v) =>
-                    mutateLayer((l) => {
+                    mutateBase((l) => {
                       l.slicing.families[i]!.angleDeg = v;
                     })
                   }
@@ -95,7 +153,7 @@ export function Inspector() {
                   step={0.5}
                   precision={1}
                   onChange={(v) =>
-                    mutateLayer((l) => {
+                    mutateBase((l) => {
                       l.slicing.families[i]!.spacing = v;
                     })
                   }
@@ -106,7 +164,7 @@ export function Inspector() {
                   step={0.5}
                   precision={1}
                   onChange={(v) =>
-                    mutateLayer((l) => {
+                    mutateBase((l) => {
                       l.slicing.families[i]!.phase = v;
                     })
                   }
@@ -116,7 +174,7 @@ export function Inspector() {
                   value={family.slotOpening}
                   options={OPENINGS}
                   onChange={(v) =>
-                    mutateLayer((l) => {
+                    mutateBase((l) => {
                       l.slicing.families[i]!.slotOpening = v;
                     })
                   }

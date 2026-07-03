@@ -136,10 +136,33 @@ export interface HeightfieldLayer extends LayerBase {
   heightScale: number;
 }
 
-/** M3: profile-intersection object layers. Placeholder so the union is future-proof. */
+/** A closed 2D polygon (first point not repeated), plane-local mm. */
+export type Ring2 = [number, number][];
+
+/** The shapes drawn in one orthographic view of an object. */
+export interface ObjectProfile {
+  shapes: Ring2[];
+}
+
+/**
+ * Profile-intersection object layer. The solid is the intersection of the
+ * three views' extrusions:
+ *   (x,y) ∈ front  ∧  (z,y) ∈ side  ∧  (x,z) ∈ top
+ * so drawing a footprint + two silhouettes carves a 3D object (the car/cake).
+ */
 export interface ObjectLayer extends LayerBase {
   kind: "object";
+  /** Object bounding box, mm. */
+  size: { width: number; height: number; depth: number };
+  /** Footprint, coords (x, z). */
+  top: ObjectProfile;
+  /** Front silhouette, coords (x, y). */
+  front: ObjectProfile;
+  /** Side silhouette, coords (z, y). */
+  side: ObjectProfile;
 }
+
+export type ObjectView = "top" | "front" | "side";
 
 export type SmartLayer = HeightfieldLayer | ObjectLayer;
 

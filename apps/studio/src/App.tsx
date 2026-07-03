@@ -2,10 +2,16 @@ import { useRef } from "react";
 import { ExportDialog } from "./panels/ExportDialog";
 import { Inspector } from "./panels/Inspector";
 import { LayersPanel } from "./panels/LayersPanel";
+import { Scene3D } from "./preview3d/Scene3D";
 import { Workspace } from "./shell/Workspace";
 import { redo, undo, useDocStore } from "./state/docStore";
 import { openDocFile } from "./state/persistence";
-import { type Workspace as WorkspaceId, useUiStore } from "./state/uiStore";
+import { type ViewMode, type Workspace as WorkspaceId, useUiStore } from "./state/uiStore";
+
+const VIEW_MODES: { id: ViewMode; label: string }[] = [
+  { id: "scene", label: "3D scene" },
+  { id: "section", label: "Cross-section" },
+];
 
 const WORKSPACES: { id: WorkspaceId; label: string }[] = [
   { id: "sculpt", label: "Sculpt" },
@@ -29,18 +35,32 @@ export function App() {
           value={doc.name}
           onChange={(e) => update((d) => void (d.name = e.target.value))}
         />
-        <div className="tabs">
-          {WORKSPACES.map((w) => (
+        <div className="tabs view-modes">
+          {VIEW_MODES.map((v) => (
             <button
               type="button"
-              key={w.id}
-              className={ui.workspace === w.id ? "active" : ""}
-              onClick={() => ui.set({ workspace: w.id })}
+              key={v.id}
+              className={ui.viewMode === v.id ? "active" : ""}
+              onClick={() => ui.set({ viewMode: v.id })}
             >
-              {w.label}
+              {v.label}
             </button>
           ))}
         </div>
+        {ui.viewMode === "section" && (
+          <div className="tabs">
+            {WORKSPACES.map((w) => (
+              <button
+                type="button"
+                key={w.id}
+                className={ui.workspace === w.id ? "active" : ""}
+                onClick={() => ui.set({ workspace: w.id })}
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="spacer" />
         <button type="button" onClick={undo} title="Undo (ctrl+z)">
           ↩
@@ -70,9 +90,7 @@ export function App() {
         <aside className="left">
           <LayersPanel />
         </aside>
-        <main className="center">
-          <Workspace />
-        </main>
+        <main className="center">{ui.viewMode === "scene" ? <Scene3D /> : <Workspace />}</main>
         <aside className="right">
           <Inspector />
         </aside>

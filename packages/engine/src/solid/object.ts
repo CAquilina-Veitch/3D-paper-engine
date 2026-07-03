@@ -1,43 +1,42 @@
 import type { ObjectLayer, Ring2 } from "@paper3d/model";
 import { type ColumnSampler, type Interval, intervalIntersect } from "./columns";
+import { localToWorldY, worldToLocalXZ } from "./transform";
+
+/**
+ * Object solid in the object's own (untransformed) local space: footprint
+ * mask ∩ front y-spans ∩ side y-spans. Exposed so the 3D preview can mesh the
+ * object without re-deriving the geometry.
+ */
+export function objectLocalColumns(layer: ObjectLayer, lx: number, lz: number): Interval[] {
+  const { size } = layer;
+  if (lx < 0 || lx > size.width || lz < 0 || lz > size.depth) return [];
+  if (!pointInProfile(layer.top.shapes, lx, lz)) return [];
+  const frontY = verticalSpans(layer.front.shapes, lx);
+  if (frontY.length === 0) return [];
+  const sideY = verticalSpans(layer.side.shapes, lz);
+  if (sideY.length === 0) return [];
+  return intervalIntersect(frontY, sideY);
+}
 
 /**
  * Object layer → ColumnSampler, purely by profile intersection — no 3D CSG.
- * A world column (x,z) maps into object-local space (accounting for the
- * layer transform), then:
- *   - the top footprint decides whether the column is inside the object;
- *   - the front silhouette gives the y-intervals at that x;
- *   - the side silhouette gives the y-intervals at that z;
- * and the solid at the column is the intersection of the two.
+ * The world column is inverse-transformed into local space, evaluated, and the
+ * resulting y-intervals mapped back through the layer's y offset + scale.
  *
  * Because this returns the same `Interval[]` a heightfield does, the slicing,
  * slot, and layout code needs no changes at all.
  */
 export function objectSampler(
-  world: { width: number; depth: number },
+  _world: { width: number; depth: number },
   layer: ObjectLayer,
 ): ColumnSampler {
   const { size, transform } = layer;
   const cx = size.width / 2;
   const cz = size.depth / 2;
-  const cos = Math.cos((-transform.rotY * Math.PI) / 180);
-  const sin = Math.sin((-transform.rotY * Math.PI) / 180);
 
   return (x, z): Interval[] => {
-    // World → object-local (inverse translate, then inverse-rotate about centre).
-    const wx = x - transform.x - cx;
-    const wz = z - transform.z - cz;
-    const lx = wx * cos - wz * sin + cx;
-    const lz = wx * sin + wz * cos + cz;
-
-    if (lx < 0 || lx > size.width || lz < 0 || lz > size.depth) return [];
-    if (!pointInProfile(layer.top.shapes, lx, lz)) return [];
-
-    const frontY = verticalSpans(layer.front.shapes, lx);
-    if (frontY.length === 0) return [];
-    const sideY = verticalSpans(layer.side.shapes, lz);
-    if (sideY.length === 0) return [];
-    return intervalIntersect(frontY, sideY);
+    const [lx, lz] = worldToLocalXZ(transform, cx, cz, x, z);
+    return objectLocalColumns(layer, lx, lz).map((iv) => localToWorldY(transform, iv.lo, iv.hi));
   };
 }
 

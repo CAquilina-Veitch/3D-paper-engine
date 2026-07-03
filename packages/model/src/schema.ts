@@ -93,7 +93,13 @@ const layerBase = {
   locked: z.boolean(),
   interaction: z.enum(["cut", "merge", "intersect", "none"]),
   slicing: slicingSchema,
-  transform: z.object({ x: z.number(), z: z.number(), rotY: z.number() }),
+  transform: z.object({
+    x: z.number(),
+    y: z.number().default(0),
+    z: z.number(),
+    rotY: z.number(),
+    scale: z.number().positive().default(1),
+  }),
 };
 
 const ring2Schema = z.array(z.tuple([z.number(), z.number()]));

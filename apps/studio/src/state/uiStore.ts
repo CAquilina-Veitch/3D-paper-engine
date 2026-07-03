@@ -1,11 +1,15 @@
 import { create } from "zustand";
 
+export type ViewMode = "scene" | "section";
+export type TransformTool = "move" | "rotate" | "scale";
 export type Workspace = "sculpt" | "slice" | "print";
 export type PreviewMode = "smooth" | "sliced";
 export type MapShading = "gray" | "hypso";
 export type ObjectTool = "select" | "rect" | "circle" | "polygon";
 
 interface UiState {
+  viewMode: ViewMode;
+  transformTool: TransformTool;
   workspace: Workspace;
   previewMode: PreviewMode;
   objectTool: ObjectTool;
@@ -23,6 +27,8 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>()((set) => ({
+  viewMode: "section",
+  transformTool: "move",
   workspace: "sculpt",
   previewMode: "sliced",
   objectTool: "select",

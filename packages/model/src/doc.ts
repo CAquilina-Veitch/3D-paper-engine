@@ -111,9 +111,14 @@ export interface SlicingStrategy {
 export type LayerInteraction = "cut" | "merge" | "intersect" | "none";
 
 export interface LayerTransform {
+  /** World translation offset, mm (identity at 0). */
   x: number;
+  y: number;
   z: number;
+  /** Rotation about the layer's footprint centre, degrees. */
   rotY: number;
+  /** Uniform scale about the footprint centre (1 = identity). */
+  scale: number;
 }
 
 export interface LayerBase {

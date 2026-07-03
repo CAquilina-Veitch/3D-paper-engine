@@ -1,6 +1,7 @@
 import type { Doc, HeightfieldLayer, SurfaceRef } from "@paper3d/model";
 import { FieldSampler } from "../field/sampler";
 import type { ColumnSampler, Interval } from "./columns";
+import { localToWorldY, worldToLocalXZ } from "./transform";
 
 /** Composited fields for each heightfield layer, keyed by layer id. */
 export type FieldMap = Map<string, Float32Array>;
@@ -46,14 +47,20 @@ export function heightfieldSampler(ctx: SolidContext, layer: HeightfieldLayer): 
   const top = surfaceFn(ctx, layer, layer.top);
   const { width, depth } = ctx.doc.world;
   const pedestal = layer.bottom.type === "zero" ? ctx.doc.print.basePedestal : 0;
+  const t = layer.transform;
+  const cx = width / 2;
+  const cz = depth / 2;
 
   return (x, z): Interval[] => {
-    if (x < 0 || x > width || z < 0 || z > depth) return [];
-    const u = x / width;
-    const v = z / depth;
+    const [lx, lz] = worldToLocalXZ(t, cx, cz, x, z);
+    if (lx < 0 || lx > width || lz < 0 || lz > depth) return [];
+    const u = lx / width;
+    const v = lz / depth;
     const b = bottom(u, v);
-    const t = top(u, v);
-    if (t <= b) return pedestal > 0 ? [{ lo: b - pedestal, hi: b }] : [];
-    return [{ lo: b - pedestal, hi: t }];
+    const surface = top(u, v);
+    if (surface <= b) {
+      return pedestal > 0 ? [localToWorldY(t, b - pedestal, b)] : [];
+    }
+    return [localToWorldY(t, b - pedestal, surface)];
   };
 }

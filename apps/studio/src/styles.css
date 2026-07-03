@@ -91,6 +91,58 @@ body,
   margin-left: 12px;
 }
 
+/* Segmented view-mode control (3D scene · cross-section) */
+.view-modes {
+  gap: 0;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-left: 10px;
+}
+.view-modes button {
+  border: none;
+  border-radius: 0;
+  background: var(--chipboard);
+}
+.view-modes button.active {
+  background: var(--kraft);
+  color: var(--chipboard);
+  font-weight: 600;
+}
+
+/* ── 3D scene view + Blender-style transform tools ── */
+.scene3d {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+.scene3d .tool-col {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: color-mix(in srgb, var(--chipboard) 85%, transparent);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+.scene3d .tool-col button {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scene3d canvas {
+  flex: 1;
+}
+
 .spacer {
   flex: 1;
 }

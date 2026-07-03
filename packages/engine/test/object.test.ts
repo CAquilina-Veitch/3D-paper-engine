@@ -1,21 +1,22 @@
 import { type Doc, type ObjectLayer, defaultDoc, newObjectLayer } from "@paper3d/model";
 import { describe, expect, it } from "vitest";
-import { objectSampler } from "../src/solid/object";
 import { sliceDoc } from "../src/slicing/slicer";
+import { objectSampler } from "../src/solid/object";
 
 const world = { width: 160, depth: 160 };
 
 /** A centered box object: top rect, front rect (x,y), side rect (z,y). */
 function boxLayer(): ObjectLayer {
   const layer = newObjectLayer("Box", world);
-  layer.transform = { x: 50, z: 50, rotY: 0 }; // 60x80 box at (50,50)
+  layer.transform = { x: 50, y: 0, z: 50, rotY: 0, scale: 1 }; // 60x80 box at (50,50)
   layer.size = { width: 60, height: 40, depth: 80 };
-  const rect = (w: number, h: number) => [
-    [0, 0],
-    [w, 0],
-    [w, h],
-    [0, h],
-  ] as [number, number][];
+  const rect = (w: number, h: number) =>
+    [
+      [0, 0],
+      [w, 0],
+      [w, h],
+      [0, h],
+    ] as [number, number][];
   layer.top = { shapes: [rect(60, 80)] };
   layer.front = { shapes: [rect(60, 40)] };
   layer.side = { shapes: [rect(80, 40)] };

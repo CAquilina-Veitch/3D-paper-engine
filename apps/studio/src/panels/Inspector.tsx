@@ -115,10 +115,24 @@ export function Inspector() {
                   onChange={(v) => mutateObj((l) => (l.transform.x = v))}
                 />
                 <Scrubber
+                  label="Position Y (mm)"
+                  value={obj.transform.y}
+                  precision={0}
+                  onChange={(v) => mutateObj((l) => (l.transform.y = v))}
+                />
+                <Scrubber
                   label="Position Z (mm)"
                   value={obj.transform.z}
                   precision={0}
                   onChange={(v) => mutateObj((l) => (l.transform.z = v))}
+                />
+                <Scrubber
+                  label="Scale"
+                  value={obj.transform.scale}
+                  min={0.05}
+                  step={0.05}
+                  precision={2}
+                  onChange={(v) => mutateObj((l) => (l.transform.scale = v))}
                 />
                 <Scrubber
                   label="Rotation (°)"

@@ -88,7 +88,7 @@ export function defaultTerrainLayer(): HeightfieldLayer {
     visible: true,
     locked: false,
     interaction: "merge",
-    transform: { x: 0, z: 0, rotY: 0 },
+    transform: { x: 0, y: 0, z: 0, rotY: 0, scale: 1 },
     bottom: { type: "zero" },
     top: { type: "own" },
     heightScale: 50,
@@ -133,8 +133,10 @@ export function newObjectLayer(name: string, world: { width: number; depth: numb
     interaction: "merge",
     transform: {
       x: Math.max(0, (world.width - size.width) / 2),
+      y: 0,
       z: Math.max(0, (world.depth - size.depth) / 2),
       rotY: 0,
+      scale: 1,
     },
     size,
     top: {

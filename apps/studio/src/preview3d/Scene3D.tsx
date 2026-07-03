@@ -2,11 +2,12 @@ import { FieldSampler, objectLocalColumns } from "@paper3d/engine";
 import type { Doc, SmartLayer } from "@paper3d/model";
 import { OrbitControls, TransformControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useDocStore } from "../state/docStore";
 import { getCompositor, useFieldStore } from "../state/fieldStore";
-import { type TransformTool, useUiStore } from "../state/uiStore";
+import { type SceneAppearance, type TransformTool, useUiStore } from "../state/uiStore";
+import { SlicedPieces } from "./SlicedPieces";
 import { buildSolidGeometry } from "./solidMesh";
 
 const TOOLS: { id: TransformTool; glyph: string; label: string }[] = [
@@ -15,14 +16,22 @@ const TOOLS: { id: TransformTool; glyph: string; label: string }[] = [
   { id: "scale", glyph: "⤢", label: "Scale (S)" },
 ];
 
+const APPEARANCES: { id: SceneAppearance; label: string }[] = [
+  { id: "solid", label: "Solid" },
+  { id: "section", label: "Cross-section" },
+];
+
 /**
- * Solid 3D scene view — no cross-sectioning. Every layer is a solid mesh you
- * can select and move/rotate/scale with a gizmo (Blender-style tools on the
- * left); the transform feeds straight back into the design.
+ * Interactive 3D scene view — a sibling to the cross-section workspaces.
+ * Every layer is a solid mesh you can select and move/rotate/scale with a
+ * gizmo (Blender-style tools on the left); the transform feeds straight back
+ * into the design. The Solid ↔ Cross-section switch only changes how the
+ * models are drawn — you can still place and edit layers either way.
  */
 export function Scene3D() {
   const doc = useDocStore((s) => s.doc);
   const tool = useUiStore((s) => s.transformTool);
+  const appearance = useUiStore((s) => s.sceneAppearance);
   const set = useUiStore((s) => s.set);
   const selectedId = useUiStore((s) => s.selectedLayerId) ?? doc.layers.at(-1)?.id;
 
@@ -41,6 +50,18 @@ export function Scene3D() {
             onClick={() => set({ transformTool: t.id })}
           >
             {t.glyph}
+          </button>
+        ))}
+      </div>
+      <div className="scene-appearance view-modes">
+        {APPEARANCES.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            className={appearance === a.id ? "active" : ""}
+            onClick={() => set({ sceneAppearance: a.id })}
+          >
+            {a.label}
           </button>
         ))}
       </div>
@@ -64,9 +85,11 @@ export function Scene3D() {
               layer={layer}
               selected={layer.id === selectedId}
               tool={tool}
+              appearance={appearance}
               onSelect={() => set({ selectedLayerId: layer.id, selectedSublayerId: null })}
             />
           ))}
+        {appearance === "section" && <SlicedPieces explode={0} />}
         <OrbitControls makeDefault target={[cx, 20, cz]} />
       </Canvas>
     </div>
@@ -77,13 +100,17 @@ function LayerNode(props: {
   layer: SmartLayer;
   selected: boolean;
   tool: TransformTool;
+  appearance: SceneAppearance;
   onSelect: () => void;
 }) {
-  const { layer, selected, tool, onSelect } = props;
+  const { layer, selected, tool, appearance, onSelect } = props;
   const doc = useDocStore((s) => s.doc);
   const update = useDocStore((s) => s.update);
   const version = useFieldStore((s) => s.version);
-  const groupRef = useRef<THREE.Group>(null);
+  // Ref-callback state so TransformControls can attach to the group via its
+  // `object` prop (reliable gizmo tracking, incl. when the transform changes
+  // from the inspector) rather than wrapping it.
+  const [group, setGroup] = useState<THREE.Group | null>(null);
   // biome-ignore lint/suspicious/noExplicitAny: three's TransformControls type isn't exported by drei
   const controlsRef = useRef<any>(null);
 
@@ -99,7 +126,7 @@ function LayerNode(props: {
 
   // On gizmo release, read the group's transform back into the layer.
   const commit = () => {
-    const g = groupRef.current;
+    const g = group;
     if (!g) return;
     update((d) => {
       const l = d.layers.find((x) => x.id === layer.id);
@@ -124,38 +151,44 @@ function LayerNode(props: {
   });
 
   const t = layer.transform;
-  const node = (
-    <group
-      ref={groupRef}
-      position={[t.x + cx, t.y, t.z + cz]}
-      rotation={[0, THREE.MathUtils.degToRad(t.rotY), 0]}
-      scale={t.scale}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect();
-      }}
-    >
-      <mesh geometry={geometry}>
-        <meshStandardMaterial
-          color={selected ? "#e8c48d" : layer.kind === "object" ? "#c8a97e" : "#b8a888"}
-          roughness={0.9}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-    </group>
-  );
-
-  if (!selected) return node;
+  // In cross-section appearance the solid is drawn as a faint ghost so the
+  // sliced pieces show through, while still being grabbable by the gizmo.
+  const ghost = appearance === "section";
   return (
-    <TransformControls
-      ref={controlsRef}
-      mode={tool === "move" ? "translate" : tool}
-      showY
-      showX={tool !== "rotate"}
-      showZ={tool !== "rotate"}
-    >
-      {node}
-    </TransformControls>
+    <>
+      <group
+        ref={setGroup}
+        position={[t.x + cx, t.y, t.z + cz]}
+        rotation={[0, THREE.MathUtils.degToRad(t.rotY), 0]}
+        scale={t.scale}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect();
+        }}
+      >
+        <mesh geometry={geometry}>
+          <meshStandardMaterial
+            color={selected ? "#e8c48d" : layer.kind === "object" ? "#c8a97e" : "#b8a888"}
+            roughness={0.9}
+            side={THREE.DoubleSide}
+            transparent={ghost}
+            opacity={ghost ? (selected ? 0.22 : 0.1) : 1}
+            depthWrite={!ghost}
+            wireframe={ghost}
+          />
+        </mesh>
+      </group>
+      {selected && group && (
+        <TransformControls
+          ref={controlsRef}
+          object={group}
+          mode={tool === "move" ? "translate" : tool}
+          showY
+          showX={tool !== "rotate"}
+          showZ={tool !== "rotate"}
+        />
+      )}
+    </>
   );
 }
 

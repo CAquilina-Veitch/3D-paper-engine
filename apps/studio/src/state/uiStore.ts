@@ -1,15 +1,17 @@
 import { create } from "zustand";
 
-export type ViewMode = "scene" | "section";
 export type TransformTool = "move" | "rotate" | "scale";
-export type Workspace = "sculpt" | "slice" | "print";
+/** The 3D scene is a sibling view alongside the cross-section workspaces. */
+export type Workspace = "scene" | "sculpt" | "slice" | "print";
+/** Inside the 3D scene view: show layers solid or cross-sectioned. */
+export type SceneAppearance = "solid" | "section";
 export type PreviewMode = "smooth" | "sliced";
 export type MapShading = "gray" | "hypso";
 export type ObjectTool = "select" | "rect" | "circle" | "polygon";
 
 interface UiState {
-  viewMode: ViewMode;
   transformTool: TransformTool;
+  sceneAppearance: SceneAppearance;
   workspace: Workspace;
   previewMode: PreviewMode;
   objectTool: ObjectTool;
@@ -27,8 +29,8 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>()((set) => ({
-  viewMode: "section",
   transformTool: "move",
+  sceneAppearance: "solid",
   workspace: "sculpt",
   previewMode: "sliced",
   objectTool: "select",

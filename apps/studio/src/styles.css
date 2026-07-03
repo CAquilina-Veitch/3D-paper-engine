@@ -142,6 +142,14 @@ body,
 .scene3d canvas {
   flex: 1;
 }
+.scene-appearance {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  margin-left: 0;
+}
 
 .spacer {
   flex: 1;

@@ -197,26 +197,36 @@ button.primary:hover {
   min-height: 0;
 }
 
-.left,
-.right {
+.left {
   width: 250px;
   overflow-y: auto;
   background: var(--chipboard);
   padding: 10px;
-}
-.left {
   border-right: 1px solid var(--edge);
-}
-.right {
-  width: 288px;
-  border-left: 1px solid var(--edge);
 }
 
 .center {
+  position: relative;
   flex: 1;
   display: flex;
   min-width: 0;
   background: var(--mat);
+}
+
+/* Floating inspector card, top-right inside the viewport */
+.inspector-float {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  width: 288px;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--chipboard) 92%, transparent);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
 
 h2 {

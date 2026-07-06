@@ -25,8 +25,8 @@ export function Inspector() {
     MATERIAL_PRESETS.find((p) => Math.abs(p.thickness - doc.print.paperThickness) < 1e-6)?.name ??
     "Custom";
 
-  const selectedLayer: SmartLayer | undefined =
-    doc.layers.find((l) => l.id === selectedLayerId) ?? doc.layers.at(-1);
+  // No fallback: with nothing selected the inspector shows the scene itself.
+  const selectedLayer: SmartLayer | undefined = doc.layers.find((l) => l.id === selectedLayerId);
   const hf = selectedLayer?.kind === "heightfield" ? selectedLayer : undefined;
   const obj = selectedLayer?.kind === "object" ? selectedLayer : undefined;
   const sublayer = hf?.heightmap.sublayers.find((s) => s.id === selectedSublayerId);
@@ -51,11 +51,11 @@ export function Inspector() {
 
   return (
     <div className="inspector">
-      <h2>Inspector</h2>
+      <h2>{sublayer ? sublayer.name : selectedLayer ? selectedLayer.name : "Scene"}</h2>
 
-      {sublayer && hf && <SublayerInspector layer={hf} sublayer={sublayer} />}
-
-      {selectedLayer && (
+      {sublayer && hf ? (
+        <SublayerInspector layer={hf} sublayer={sublayer} />
+      ) : selectedLayer ? (
         <>
           <Section title={`${selectedLayer.name} — layer`}>
             <label className="field">
@@ -197,93 +197,95 @@ export function Inspector() {
             ))}
           </Section>
         </>
-      )}
+      ) : (
+        <>
+          <Section title="World">
+            <Scrubber
+              label="Width (mm)"
+              value={doc.world.width}
+              min={40}
+              step={10}
+              precision={0}
+              onChange={(v) => update((d) => (d.world.width = v))}
+            />
+            <Scrubber
+              label="Depth (mm)"
+              value={doc.world.depth}
+              min={40}
+              step={10}
+              precision={0}
+              onChange={(v) => update((d) => (d.world.depth = v))}
+            />
+          </Section>
 
-      <Section title="World">
-        <Scrubber
-          label="Width (mm)"
-          value={doc.world.width}
-          min={40}
-          step={10}
-          precision={0}
-          onChange={(v) => update((d) => (d.world.width = v))}
-        />
-        <Scrubber
-          label="Depth (mm)"
-          value={doc.world.depth}
-          min={40}
-          step={10}
-          precision={0}
-          onChange={(v) => update((d) => (d.world.depth = v))}
-        />
-      </Section>
+          <Section title="Print">
+            <label className="field">
+              <span>Material</span>
+              <select
+                value={currentMaterial}
+                onChange={(e) => {
+                  const preset = MATERIAL_PRESETS.find((p) => p.name === e.target.value);
+                  if (preset)
+                    update((d) => {
+                      d.print.paperThickness = preset.thickness;
+                      d.print.kerf = preset.kerf;
+                    });
+                }}
+              >
+                {MATERIAL_PRESETS.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+                <option value="Custom">Custom…</option>
+              </select>
+            </label>
+            <Scrubber
+              label="Paper thickness (mm)"
+              value={doc.print.paperThickness}
+              min={0.05}
+              step={0.05}
+              precision={2}
+              onChange={(v) => update((d) => (d.print.paperThickness = v))}
+            />
+            <Scrubber
+              label="Kerf (mm)"
+              value={doc.print.kerf}
+              min={0}
+              step={0.01}
+              precision={2}
+              onChange={(v) => update((d) => (d.print.kerf = v))}
+            />
+            <Scrubber
+              label="Base pedestal (mm)"
+              value={doc.print.basePedestal}
+              min={0}
+              step={1}
+              precision={0}
+              onChange={(v) => update((d) => (d.print.basePedestal = v))}
+            />
+          </Section>
 
-      <Section title="Print">
-        <label className="field">
-          <span>Material</span>
-          <select
-            value={currentMaterial}
-            onChange={(e) => {
-              const preset = MATERIAL_PRESETS.find((p) => p.name === e.target.value);
-              if (preset)
-                update((d) => {
-                  d.print.paperThickness = preset.thickness;
-                  d.print.kerf = preset.kerf;
-                });
-            }}
-          >
-            {MATERIAL_PRESETS.map((p) => (
-              <option key={p.name} value={p.name}>
-                {p.name}
-              </option>
-            ))}
-            <option value="Custom">Custom…</option>
-          </select>
-        </label>
-        <Scrubber
-          label="Paper thickness (mm)"
-          value={doc.print.paperThickness}
-          min={0.05}
-          step={0.05}
-          precision={2}
-          onChange={(v) => update((d) => (d.print.paperThickness = v))}
-        />
-        <Scrubber
-          label="Kerf (mm)"
-          value={doc.print.kerf}
-          min={0}
-          step={0.01}
-          precision={2}
-          onChange={(v) => update((d) => (d.print.kerf = v))}
-        />
-        <Scrubber
-          label="Base pedestal (mm)"
-          value={doc.print.basePedestal}
-          min={0}
-          step={1}
-          precision={0}
-          onChange={(v) => update((d) => (d.print.basePedestal = v))}
-        />
-      </Section>
-
-      {result && stats && (
-        <Section title="Build">
-          <div className="stats-grid">
-            <span className="stat-label">Pieces</span>
-            <span className="stat">{stats.pieces}</span>
-            <span className="stat-label">Sheets</span>
-            <span className="stat">{stats.sheets} + calibration</span>
-            <span className="stat-label">Cut length</span>
-            <span className="stat">{(stats.cutLengthMm / 1000).toFixed(1)} m</span>
-            <span className="stat-label">Assembly</span>
-            <span className="stat">~{stats.estAssemblyMin} min</span>
-          </div>
-          {warningSummary(result.model).map((w) => (
-            <p key={w} className="warning">
-              ⚠ {w}
-            </p>
-          ))}
-        </Section>
+          {result && stats && (
+            <Section title="Build">
+              <div className="stats-grid">
+                <span className="stat-label">Pieces</span>
+                <span className="stat">{stats.pieces}</span>
+                <span className="stat-label">Sheets</span>
+                <span className="stat">{stats.sheets} + calibration</span>
+                <span className="stat-label">Cut length</span>
+                <span className="stat">{(stats.cutLengthMm / 1000).toFixed(1)} m</span>
+                <span className="stat-label">Assembly</span>
+                <span className="stat">~{stats.estAssemblyMin} min</span>
+              </div>
+              {warningSummary(result.model).map((w) => (
+                <p key={w} className="warning">
+                  ⚠ {w}
+                </p>
+              ))}
+            </Section>
+          )}
+        </>
       )}
     </div>
   );

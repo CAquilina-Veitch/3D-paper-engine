@@ -72,10 +72,12 @@ export function App() {
         <aside className="left">
           <LayersPanel />
         </aside>
-        <main className="center">{ui.workspace === "scene" ? <Scene3D /> : <Workspace />}</main>
-        <aside className="right">
-          <Inspector />
-        </aside>
+        <main className="center">
+          {ui.workspace === "scene" ? <Scene3D /> : <Workspace />}
+          <div className="inspector-float">
+            <Inspector />
+          </div>
+        </main>
       </div>
       {ui.exportOpen && <ExportDialog />}
     </div>

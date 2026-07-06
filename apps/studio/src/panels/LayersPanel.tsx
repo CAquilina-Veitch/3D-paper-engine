@@ -24,7 +24,7 @@ export function LayersPanel() {
   const update = useDocStore((s) => s.update);
   const { selectedLayerId, selectedSublayerId, set } = useUiStore();
 
-  const selectedId = selectedLayerId ?? doc.layers[doc.layers.length - 1]?.id;
+  const selectedId = selectedLayerId;
 
   const addLayer = () => {
     const layer = newHeightfieldLayer(

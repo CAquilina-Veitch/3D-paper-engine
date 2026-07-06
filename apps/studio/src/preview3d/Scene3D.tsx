@@ -33,7 +33,8 @@ export function Scene3D() {
   const tool = useUiStore((s) => s.transformTool);
   const appearance = useUiStore((s) => s.sceneAppearance);
   const set = useUiStore((s) => s.set);
-  const selectedId = useUiStore((s) => s.selectedLayerId) ?? doc.layers.at(-1)?.id;
+  // No fallback: nothing selected = no gizmo, and the inspector shows the scene.
+  const selectedId = useUiStore((s) => s.selectedLayerId);
 
   const cx = doc.world.width / 2;
   const cz = doc.world.depth / 2;
@@ -69,6 +70,7 @@ export function Scene3D() {
         frameloop="always"
         camera={{ position: [cx + 170, 150, cz + 200], fov: 40, near: 1, far: 4000 }}
         style={{ background: "#102621" }}
+        onPointerMissed={() => set({ selectedLayerId: null, selectedSublayerId: null })}
       >
         <ambientLight intensity={0.7} />
         <directionalLight position={[200, 400, 100]} intensity={1.4} />

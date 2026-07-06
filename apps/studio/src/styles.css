@@ -332,6 +332,25 @@ h2 {
   stroke: var(--kraft);
   fill: color-mix(in srgb, var(--kraft) 48%, transparent);
 }
+/* Projection of a part drawn in another view — selectable, movable, and
+   double-clickable to carve, but not vertex-editable until materialized. */
+.ortho svg .shape.ghost {
+  fill: color-mix(in srgb, var(--kraft) 12%, transparent);
+  stroke: var(--ink-dim);
+  stroke-dasharray: 5 4;
+}
+.ortho svg .shape.ghost.sel {
+  stroke: var(--kraft);
+  fill: color-mix(in srgb, var(--kraft) 22%, transparent);
+}
+/* Subtract parts read as cuts */
+.ortho svg .shape.cut {
+  stroke: var(--blade);
+  fill: color-mix(in srgb, var(--blade) 16%, transparent);
+}
+.ortho svg .shape.cut.sel {
+  fill: color-mix(in srgb, var(--blade) 28%, transparent);
+}
 .ortho svg .shape.draft {
   fill: color-mix(in srgb, var(--kraft) 20%, transparent);
   stroke: var(--kraft);

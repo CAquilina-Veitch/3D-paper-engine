@@ -5,7 +5,7 @@ import { objectSampler } from "../src/solid/object";
 
 const world = { width: 160, depth: 160 };
 
-/** A centered box object: top rect, front rect (x,y), side rect (z,y). */
+/** A centered box object: one part with top/front/side rects. */
 function boxLayer(): ObjectLayer {
   const layer = newObjectLayer("Box", world);
   layer.transform = { x: 50, y: 0, z: 50, rotY: 0, scale: 1 }; // 60x80 box at (50,50)
@@ -17,9 +17,13 @@ function boxLayer(): ObjectLayer {
       [w, h],
       [0, h],
     ] as [number, number][];
-  layer.top = { shapes: [rect(60, 80)] };
-  layer.front = { shapes: [rect(60, 40)] };
-  layer.side = { shapes: [rect(80, 40)] };
+  layer.parts = [
+    {
+      id: "part_box",
+      mode: "add",
+      profiles: { top: rect(60, 80), front: rect(60, 40), side: rect(80, 40) },
+    },
+  ];
   return layer;
 }
 

@@ -1,5 +1,12 @@
-import type { ObjectLayer, ObjectView, Ring2 } from "@paper3d/model";
-import { useEffect, useRef, useState } from "react";
+import { partProjection, pointInRing } from "@paper3d/engine";
+import {
+  type ObjectLayer,
+  type ObjectPart,
+  type ObjectView,
+  type Ring2,
+  newId,
+} from "@paper3d/model";
+import { useMemo, useRef, useState } from "react";
 import { useDocStore } from "../../state/docStore";
 import { type ObjectTool, useUiStore } from "../../state/uiStore";
 
@@ -10,15 +17,81 @@ const TOOLS: { id: ObjectTool; label: string }[] = [
   { id: "polygon", label: "Polygon" },
 ];
 
+/** Which model axes a view's (horizontal, vertical) coordinates are. */
+const VIEW_AXES: Record<ObjectView, [Axis, Axis]> = {
+  top: ["x", "z"],
+  front: ["x", "y"],
+  side: ["z", "y"],
+};
+
+type Axis = "x" | "y" | "z";
+
+/** Where each model axis lives inside a part's per-view profiles. */
+const AXIS_SLOTS: Record<Axis, [ObjectView, 0 | 1][]> = {
+  x: [
+    ["top", 0],
+    ["front", 0],
+  ],
+  z: [
+    ["top", 1],
+    ["side", 0],
+  ],
+  y: [
+    ["front", 1],
+    ["side", 1],
+  ],
+};
+
+/**
+ * The object editor: three orthographic views of ONE shared parts model.
+ * Drawing a shape in any view creates a 3D part; every other view shows that
+ * part's real projected silhouette (a ghost) which can be selected and moved
+ * — moving a ghost moves the part itself, in whichever profiles carry the
+ * view's axes. Double-clicking a ghost materializes the projection into an
+ * editable silhouette for that view (carving the part). Overlapping shapes
+ * union; "cut" shapes subtract (holes).
+ */
 export function ObjectEditor({ layer }: { layer: ObjectLayer }) {
   const update = useDocStore((s) => s.update);
-  const { objectTool, set } = useUiStore();
+  const { objectTool, objectMode, set } = useUiStore();
+  const [selectedPartId, setSelectedPartId] = useState<string | null>(null);
 
-  const setView = (view: ObjectView, shapes: Ring2[]) =>
+  const mutate = (fn: (l: ObjectLayer) => void) =>
     update((d) => {
       const l = d.layers.find((x) => x.id === layer.id);
-      if (l?.kind === "object") l[view] = { shapes };
+      if (l?.kind === "object") fn(l);
     });
+
+  const ops: PartOps = {
+    addPart: (view, ring) => {
+      const id = newId("part");
+      const profiles: ObjectPart["profiles"] = {};
+      profiles[view] = ring;
+      mutate((l) => {
+        l.parts.push({ id, mode: objectMode === "cut" ? "subtract" : "add", profiles });
+      });
+      setSelectedPartId(id);
+    },
+    deletePart: (partId) => {
+      mutate((l) => {
+        l.parts = l.parts.filter((p) => p.id !== partId);
+      });
+      setSelectedPartId(null);
+    },
+    setProfile: (partId, view, ring) =>
+      mutate((l) => {
+        const p = l.parts.find((x) => x.id === partId);
+        if (p) p.profiles[view] = ring;
+      }),
+    movePart: (partId, view, dh, dv) =>
+      mutate((l) => {
+        const p = l.parts.find((x) => x.id === partId);
+        if (!p) return;
+        const [hAxis, vAxis] = VIEW_AXES[view];
+        translateAxis(p.profiles, hAxis, dh);
+        translateAxis(p.profiles, vAxis, dv);
+      }),
+  };
 
   return (
     <div className="object-editor">
@@ -33,42 +106,80 @@ export function ObjectEditor({ layer }: { layer: ObjectLayer }) {
             {t.label}
           </button>
         ))}
+        <span className="view-modes">
+          <button
+            type="button"
+            className={objectMode === "add" ? "active" : ""}
+            title="New shapes union into the object"
+            onClick={() => set({ objectMode: "add" })}
+          >
+            Add
+          </button>
+          <button
+            type="button"
+            className={objectMode === "cut" ? "active" : ""}
+            title="New shapes cut holes out of the object"
+            onClick={() => set({ objectMode: "cut" })}
+          >
+            Cut
+          </button>
+        </span>
         <span className="hint">
           {objectTool === "polygon"
             ? "click to add points · double-click to finish"
             : objectTool === "select"
-              ? "drag a handle to reshape · drag a face to move · Delete removes"
-              : "drag to draw"}
+              ? "drag to move (any view) · handles reshape · double-click a ghost to carve here · Delete removes"
+              : "drag to draw — the shape appears in every view"}
         </span>
       </div>
       <div className="ortho-grid">
         <OrthoView
+          view="top"
           title="Top — footprint (x · z)"
-          hExtent={layer.size.width}
-          vExtent={layer.size.depth}
-          flipV={false}
-          shapes={layer.top.shapes}
-          onChange={(s) => setView("top", s)}
+          layer={layer}
+          selectedPartId={selectedPartId}
+          onSelectPart={setSelectedPartId}
+          ops={ops}
         />
         <OrthoView
+          view="front"
           title="Front — silhouette (x · height)"
-          hExtent={layer.size.width}
-          vExtent={layer.size.height}
-          flipV
-          shapes={layer.front.shapes}
-          onChange={(s) => setView("front", s)}
+          layer={layer}
+          selectedPartId={selectedPartId}
+          onSelectPart={setSelectedPartId}
+          ops={ops}
         />
         <OrthoView
+          view="side"
           title="Side — silhouette (z · height)"
-          hExtent={layer.size.depth}
-          vExtent={layer.size.height}
-          flipV
-          shapes={layer.side.shapes}
-          onChange={(s) => setView("side", s)}
+          layer={layer}
+          selectedPartId={selectedPartId}
+          onSelectPart={setSelectedPartId}
+          ops={ops}
         />
       </div>
     </div>
   );
+}
+
+interface PartOps {
+  addPart: (view: ObjectView, ring: Ring2) => void;
+  deletePart: (partId: string) => void;
+  setProfile: (partId: string, view: ObjectView, ring: Ring2) => void;
+  movePart: (partId: string, view: ObjectView, dh: number, dv: number) => void;
+}
+
+function translateAxis(
+  profiles: { top?: Ring2; front?: Ring2; side?: Ring2 },
+  axis: Axis,
+  d: number,
+) {
+  if (d === 0) return;
+  for (const [view, ci] of AXIS_SLOTS[axis]) {
+    const ring = profiles[view];
+    if (!ring) continue;
+    for (const pt of ring) pt[ci] += d;
+  }
 }
 
 type Draft =
@@ -76,25 +187,41 @@ type Draft =
   | { kind: "poly"; pts: [number, number][]; cursor: [number, number] };
 
 type DragState =
-  | { kind: "vertex"; si: number; vi: number }
-  | { kind: "shape"; si: number; last: [number, number] };
+  | { kind: "vertex"; partId: string; vi: number }
+  | { kind: "move"; partId: string; last: [number, number] };
 
 const CIRCLE_SEGMENTS = 28;
 
 function OrthoView(props: {
+  view: ObjectView;
   title: string;
-  hExtent: number;
-  vExtent: number;
-  flipV: boolean;
-  shapes: Ring2[];
-  onChange: (shapes: Ring2[]) => void;
+  layer: ObjectLayer;
+  selectedPartId: string | null;
+  onSelectPart: (id: string | null) => void;
+  ops: PartOps;
 }) {
-  const { title, hExtent, vExtent, flipV, shapes, onChange } = props;
+  const { view, title, layer, selectedPartId, onSelectPart, ops } = props;
   const tool = useUiStore((s) => s.objectTool);
   const svgRef = useRef<SVGSVGElement>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
   const drag = useRef<DragState | null>(null);
+
+  const { size } = layer;
+  const hExtent = view === "side" ? size.depth : size.width;
+  const vExtent = view === "top" ? size.depth : size.height;
+  const flipV = view !== "top";
+
+  // Every part, with its silhouette in this view: its own editable profile,
+  // or the true projection of the part's solid (a ghost).
+  const entries = useMemo(
+    () =>
+      layer.parts.map((part) => ({
+        part,
+        own: part.profiles[view],
+        rings: partProjection(part, size, view),
+      })),
+    [layer.parts, size, view],
+  );
 
   const handleR = Math.max(hExtent, vExtent) * 0.018;
   const grab = handleR * 1.8;
@@ -107,37 +234,39 @@ function OrthoView(props: {
     return [clamp(hx, 0, hExtent), clamp(vy, 0, vExtent)];
   };
 
-  // Reset any in-progress draft when the tool changes.
-  useEffect(() => setDraft(null), []);
-
-  const commit = (next: Ring2[]) => onChange(next);
+  const hitEntry = (p: [number, number]) => {
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i]!.rings.some((ring) => pointInRing(ring, p[0], p[1]))) return entries[i]!;
+    }
+    return null;
+  };
 
   const onPointerDown = (e: React.PointerEvent) => {
     (e.target as Element).setPointerCapture?.(e.pointerId);
     const p = toModel(e);
 
     if (tool === "select") {
-      // Grab the nearest vertex, else the shape under the cursor.
-      let best: { si: number; vi: number; d: number } | null = null;
-      for (let si = 0; si < shapes.length; si++) {
-        const ring = shapes[si]!;
-        for (let vi = 0; vi < ring.length; vi++) {
-          const [x, y] = ring[vi]!;
+      // Grab the nearest editable vertex, else the part under the cursor.
+      let best: { partId: string; vi: number; d: number } | null = null;
+      for (const { part, own } of entries) {
+        if (!own) continue;
+        for (let vi = 0; vi < own.length; vi++) {
+          const [x, y] = own[vi]!;
           const d = Math.hypot(x - p[0], y - p[1]);
-          if (d < grab && (!best || d < best.d)) best = { si, vi, d };
+          if (d < grab && (!best || d < best.d)) best = { partId: part.id, vi, d };
         }
       }
       if (best) {
-        drag.current = { kind: "vertex", si: best.si, vi: best.vi };
-        setSelected(best.si);
+        drag.current = { kind: "vertex", partId: best.partId, vi: best.vi };
+        onSelectPart(best.partId);
         return;
       }
-      const si = shapes.findIndex((ring) => pointInRing(ring, p));
-      if (si >= 0) {
-        drag.current = { kind: "shape", si, last: p };
-        setSelected(si);
+      const hit = hitEntry(p);
+      if (hit) {
+        drag.current = { kind: "move", partId: hit.part.id, last: p };
+        onSelectPart(hit.part.id);
       } else {
-        setSelected(null);
+        onSelectPart(null);
       }
       return;
     }
@@ -159,16 +288,17 @@ function OrthoView(props: {
     const p = toModel(e);
     if (drag.current) {
       const d = drag.current;
-      const next = shapes.map((r) => r.slice() as Ring2);
       if (d.kind === "vertex") {
-        next[d.si]![d.vi] = p;
+        const own = layer.parts.find((x) => x.id === d.partId)?.profiles[view];
+        if (own) {
+          const next = own.map((pt) => [...pt] as [number, number]);
+          next[d.vi] = p;
+          ops.setProfile(d.partId, view, next);
+        }
       } else {
-        const dx = p[0] - d.last[0];
-        const dy = p[1] - d.last[1];
-        next[d.si] = next[d.si]!.map(([x, y]) => [x + dx, y + dy]);
+        ops.movePart(d.partId, view, p[0] - d.last[0], p[1] - d.last[1]);
         d.last = p;
       }
-      commit(next);
       return;
     }
     if (draft && (draft.kind === "rect" || draft.kind === "circle")) {
@@ -188,27 +318,41 @@ function OrthoView(props: {
       const [x0, y0] = draft.a;
       const [x1, y1] = draft.b;
       if (Math.abs(x1 - x0) > 0.5 && Math.abs(y1 - y0) > 0.5) {
-        commit([...shapes, rect(x0, y0, x1, y1)]);
+        ops.addPart(view, rect(x0, y0, x1, y1));
       }
       setDraft(null);
     } else if (draft.kind === "circle") {
       const r = Math.hypot(draft.b[0] - draft.a[0], draft.b[1] - draft.a[1]);
-      if (r > 0.5) commit([...shapes, circle(draft.a, r)]);
+      if (r > 0.5) ops.addPart(view, circle(draft.a, r));
       setDraft(null);
     }
   };
 
   const finishPoly = () => {
     if (draft?.kind === "poly" && draft.pts.length >= 3) {
-      commit([...shapes, draft.pts]);
+      ops.addPart(view, draft.pts);
     }
     setDraft(null);
   };
 
+  const onDoubleClick = (e: React.MouseEvent) => {
+    if (tool === "polygon") {
+      finishPoly();
+      return;
+    }
+    if (tool !== "select") return;
+    // Materialize a ghost's projection into an editable silhouette here.
+    const p = toModel(e);
+    const hit = hitEntry(p);
+    if (hit && !hit.own) {
+      const ring = hit.rings.find((r) => pointInRing(r, p[0], p[1])) ?? hit.rings[0];
+      if (ring) ops.setProfile(hit.part.id, view, ring);
+    }
+  };
+
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.key === "Delete" || e.key === "Backspace") && selected != null) {
-      commit(shapes.filter((_, i) => i !== selected));
-      setSelected(null);
+    if ((e.key === "Delete" || e.key === "Backspace") && selectedPartId != null) {
+      ops.deletePart(selectedPartId);
     }
     if (e.key === "Enter") finishPoly();
     if (e.key === "Escape") setDraft(null);
@@ -220,6 +364,8 @@ function OrthoView(props: {
       : draft?.kind === "circle"
         ? circle(draft.a, Math.hypot(draft.b[0] - draft.a[0], draft.b[1] - draft.a[1]))
         : null;
+
+  const selectedOwn = entries.find((en) => en.part.id === selectedPartId && en.own)?.own;
 
   return (
     <div className="ortho">
@@ -235,18 +381,27 @@ function OrthoView(props: {
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onDoubleClick={finishPoly}
+          onDoubleClick={onDoubleClick}
           onKeyDown={onKeyDown}
         >
           <g transform={flipV ? `translate(0 ${vExtent}) scale(1 -1)` : undefined}>
-            {shapes.map((ring, i) => (
-              <polygon
-                key={`s${i}-${ring.length}`}
-                points={ring.map(([x, y]) => `${x},${y}`).join(" ")}
-                className={`shape ${selected === i ? "sel" : ""}`}
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
+            {entries.flatMap(({ part, own, rings }) =>
+              rings.map((ring, ri) => (
+                <polygon
+                  key={`${part.id}-${ri}-${ring.length}`}
+                  points={ring.map(([x, y]) => `${x},${y}`).join(" ")}
+                  className={[
+                    "shape",
+                    own ? "" : "ghost",
+                    part.mode === "subtract" ? "cut" : "",
+                    part.id === selectedPartId ? "sel" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  vectorEffect="non-scaling-stroke"
+                />
+              )),
+            )}
             {draftRing && (
               <polygon
                 points={draftRing.map(([x, y]) => `${x},${y}`).join(" ")}
@@ -262,18 +417,17 @@ function OrthoView(props: {
               />
             )}
             {tool === "select" &&
-              shapes.flatMap((ring, si) =>
-                ring.map(([x, y], vi) => (
-                  <circle
-                    key={`h${si}-${vi}`}
-                    cx={x}
-                    cy={y}
-                    r={handleR}
-                    className={`handle ${selected === si ? "sel" : ""}`}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )),
-              )}
+              selectedOwn?.map(([x, y], vi) => (
+                <circle
+                  // biome-ignore lint/suspicious/noArrayIndexKey: vertices have no identity beyond position
+                  key={`h${vi}`}
+                  cx={x}
+                  cy={y}
+                  r={handleR}
+                  className="handle sel"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
           </g>
         </svg>
       </div>
@@ -297,18 +451,6 @@ function circle(center: [number, number], r: number): Ring2 {
     out.push([center[0] + Math.cos(t) * r, center[1] + Math.sin(t) * r]);
   }
   return out;
-}
-
-function pointInRing(ring: Ring2, p: [number, number]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, yi] = ring[i]!;
-    const [xj, yj] = ring[j]!;
-    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
 }
 
 function clamp(v: number, lo: number, hi: number): number {

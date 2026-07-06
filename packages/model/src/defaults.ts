@@ -110,10 +110,10 @@ export function newHeightfieldLayer(name: string, seed = 2): HeightfieldLayer {
 }
 
 /**
- * A fresh object layer, pre-loaded with a little house so the three-view
- * intersection is legible immediately: a rectangular footprint, and a
- * walls-plus-gable silhouette in both front and side. Intersecting the two
- * gables yields a hip roof.
+ * A fresh object layer, pre-loaded with a little house so the shared-model
+ * editing is legible immediately: one part with a rectangular footprint and
+ * a walls-plus-gable silhouette carved in both front and side. Intersecting
+ * the two gables yields a hip roof.
  */
 export function newObjectLayer(name: string, world: { width: number; depth: number }): ObjectLayer {
   const size = { width: 60, height: 50, depth: 80 };
@@ -139,18 +139,22 @@ export function newObjectLayer(name: string, world: { width: number; depth: numb
       scale: 1,
     },
     size,
-    top: {
-      shapes: [
-        [
-          [4, 4],
-          [size.width - 4, 4],
-          [size.width - 4, size.depth - 4],
-          [4, size.depth - 4],
-        ],
-      ],
-    },
-    front: { shapes: [silhouette(size.width)] },
-    side: { shapes: [silhouette(size.depth)] },
+    parts: [
+      {
+        id: newId("part"),
+        mode: "add",
+        profiles: {
+          top: [
+            [4, 4],
+            [size.width - 4, 4],
+            [size.width - 4, size.depth - 4],
+            [4, size.depth - 4],
+          ],
+          front: silhouette(size.width),
+          side: silhouette(size.depth),
+        },
+      },
+    ],
     slicing: eggCrateStrategy(8),
   };
 }

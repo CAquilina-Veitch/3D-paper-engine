@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { Doc, Sublayer } from "./doc";
+import { newId } from "./defaults";
+import type { Doc, ObjectPart, Ring2, Sublayer } from "./doc";
 import { decodeField, encodeField } from "./serialize";
 
 const remapSchema = z
@@ -103,7 +104,18 @@ const layerBase = {
 };
 
 const ring2Schema = z.array(z.tuple([z.number(), z.number()]));
+/** Legacy (pre-parts) per-view shape list, still accepted for migration. */
 const objectProfileSchema = z.object({ shapes: z.array(ring2Schema) });
+
+const objectPartSchema = z.object({
+  id: z.string(),
+  mode: z.enum(["add", "subtract"]),
+  profiles: z.object({
+    top: ring2Schema.optional(),
+    front: ring2Schema.optional(),
+    side: ring2Schema.optional(),
+  }),
+});
 
 const layerSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -125,9 +137,11 @@ const layerSchema = z.discriminatedUnion("kind", [
       height: z.number().positive(),
       depth: z.number().positive(),
     }),
-    top: objectProfileSchema,
-    front: objectProfileSchema,
-    side: objectProfileSchema,
+    parts: z.array(objectPartSchema).optional(),
+    /** Legacy three-profile fields; migrated to parts on load. */
+    top: objectProfileSchema.optional(),
+    front: objectProfileSchema.optional(),
+    side: objectProfileSchema.optional(),
   }),
 ]);
 
@@ -173,12 +187,57 @@ export function docToJson(doc: Doc): DocJson {
   } as DocJson;
 }
 
+/**
+ * Migrate a legacy three-profile object layer to parts. Each footprint shape
+ * becomes an add-part carrying the (first) front/side silhouettes as carves;
+ * a footprint shape nested inside another was an even-odd hole, so it becomes
+ * a subtract-part. Extra front/side shapes beyond the first are dropped —
+ * legacy even-odd made overlaps cancel, which was never a drawable intent.
+ */
+function migrateLegacyObjectParts(profiles: {
+  top?: { shapes: Ring2[] };
+  front?: { shapes: Ring2[] };
+  side?: { shapes: Ring2[] };
+}): ObjectPart[] {
+  const top = profiles.top?.shapes ?? [];
+  const front = profiles.front?.shapes[0];
+  const side = profiles.side?.shapes[0];
+  if (top.length === 0) {
+    if (!front && !side) return [];
+    return [{ id: newId("part"), mode: "add", profiles: { front, side } }];
+  }
+  return top.map((ring): ObjectPart => {
+    const first = ring[0];
+    const nested =
+      first != null && top.some((other) => other !== ring && pointInRing(other, first));
+    return nested
+      ? { id: newId("part"), mode: "subtract", profiles: { top: ring } }
+      : { id: newId("part"), mode: "add", profiles: { top: ring, front, side } };
+  });
+}
+
+function pointInRing(ring: Ring2, p: [number, number]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]!;
+    const [xj, yj] = ring[j]!;
+    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
 /** Parse + hydrate JSON into a live Doc. Throws ZodError on invalid input. */
 export function docFromJson(json: unknown): Doc {
   const parsed = docJsonSchema.parse(json);
   return {
     ...parsed,
     layers: parsed.layers.map((layer) => {
+      if (layer.kind === "object") {
+        const { top, front, side, parts, ...rest } = layer;
+        return { ...rest, parts: parts ?? migrateLegacyObjectParts({ top, front, side }) };
+      }
       if (layer.kind !== "heightfield") return layer;
       const res = layer.heightmap.resolution;
       return {

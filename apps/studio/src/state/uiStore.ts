@@ -8,6 +8,8 @@ export type SceneAppearance = "solid" | "section";
 export type PreviewMode = "smooth" | "sliced";
 export type MapShading = "gray" | "hypso";
 export type ObjectTool = "select" | "rect" | "circle" | "polygon";
+/** New object shapes either union into the model or cut holes out of it. */
+export type ObjectMode = "add" | "cut";
 
 interface UiState {
   transformTool: TransformTool;
@@ -15,6 +17,7 @@ interface UiState {
   workspace: Workspace;
   previewMode: PreviewMode;
   objectTool: ObjectTool;
+  objectMode: ObjectMode;
   explode: number;
   shading: MapShading;
   selectedLayerId: string | null;
@@ -36,6 +39,7 @@ export const useUiStore = create<UiState>()((set) => ({
   workspace: "sculpt",
   previewMode: "sliced",
   objectTool: "select",
+  objectMode: "add",
   explode: 0,
   shading: "hypso",
   selectedLayerId: null,

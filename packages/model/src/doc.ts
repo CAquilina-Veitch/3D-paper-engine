@@ -144,30 +144,35 @@ export interface HeightfieldLayer extends LayerBase {
 /** A closed 2D polygon (first point not repeated), plane-local mm. */
 export type Ring2 = [number, number][];
 
-/** The shapes drawn in one orthographic view of an object. */
-export interface ObjectProfile {
-  shapes: Ring2[];
+export type ObjectView = "top" | "front" | "side";
+
+/**
+ * One solid part of an object — the unit of the shared 3D model. A part is
+ * born from a single shape drawn in one view (extruded through the object box
+ * along that view's axis) and can be carved by refining its silhouette in the
+ * other views. The part's solid is the intersection of the extrusions of the
+ * silhouettes it has; a view without a silhouette leaves that axis
+ * unconstrained. View coords: top (x, z) · front (x, y) · side (z, y).
+ */
+export interface ObjectPart {
+  id: string;
+  /** "add" unions into the object; "subtract" cuts a hole out of it. */
+  mode: "add" | "subtract";
+  profiles: { top?: Ring2; front?: Ring2; side?: Ring2 };
 }
 
 /**
- * Profile-intersection object layer. The solid is the intersection of the
- * three views' extrusions:
- *   (x,y) ∈ front  ∧  (z,y) ∈ side  ∧  (x,z) ∈ top
- * so drawing a footprint + two silhouettes carves a 3D object (the car/cake).
+ * Parts-based object layer: one shared 3D model, viewed and edited through
+ * three orthographic projections of the same parts. The solid is
+ * union(add parts) − union(subtract parts), so overlapping shapes merge into
+ * one object instead of even-odd cancelling.
  */
 export interface ObjectLayer extends LayerBase {
   kind: "object";
   /** Object bounding box, mm. */
   size: { width: number; height: number; depth: number };
-  /** Footprint, coords (x, z). */
-  top: ObjectProfile;
-  /** Front silhouette, coords (x, y). */
-  front: ObjectProfile;
-  /** Side silhouette, coords (z, y). */
-  side: ObjectProfile;
+  parts: ObjectPart[];
 }
-
-export type ObjectView = "top" | "front" | "side";
 
 export type SmartLayer = HeightfieldLayer | ObjectLayer;
 

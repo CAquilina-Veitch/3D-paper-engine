@@ -1,5 +1,5 @@
 import { FieldSampler, objectLocalColumns } from "@paper3d/engine";
-import type { Doc, SmartLayer } from "@paper3d/model";
+import type { Doc, GradientSublayer, SmartLayer } from "@paper3d/model";
 import { OrbitControls, TransformControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { useDocStore } from "../state/docStore";
 import { getCompositor, useFieldStore } from "../state/fieldStore";
 import { type SceneAppearance, type TransformTool, useUiStore } from "../state/uiStore";
+import { GradientHandles } from "./GradientHandles";
 import { SlicedPieces } from "./SlicedPieces";
 import { buildSolidGeometry } from "./solidMesh";
 
@@ -112,6 +113,15 @@ function LayerNode(props: {
   const doc = useDocStore((s) => s.doc);
   const update = useDocStore((s) => s.update);
   const version = useFieldStore((s) => s.version);
+  const selectedSublayerId = useUiStore((s) => s.selectedSublayerId);
+  // When the active thing is a gradient sublayer, the scene shows its
+  // draggable endpoints instead of the layer transform gizmo.
+  const gradient =
+    selected && layer.kind === "heightfield"
+      ? layer.heightmap.sublayers.find(
+          (s): s is GradientSublayer => s.kind === "gradient" && s.id === selectedSublayerId,
+        )
+      : undefined;
   // Ref-callback state so TransformControls can attach to the group via its
   // `object` prop (reliable gizmo tracking, incl. when the transform changes
   // from the inspector) rather than wrapping it.
@@ -182,8 +192,17 @@ function LayerNode(props: {
             wireframe={ghost}
           />
         </mesh>
+        {gradient && group && layer.kind === "heightfield" && (
+          <GradientHandles
+            layer={layer}
+            sublayer={gradient}
+            width={doc.world.width}
+            depth={doc.world.depth}
+            group={group}
+          />
+        )}
       </group>
-      {selected && group && (
+      {selected && !gradient && group && (
         <TransformControls
           ref={controlsRef}
           object={group}

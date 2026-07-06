@@ -1,8 +1,9 @@
-import type { HeightfieldLayer, PaintSublayer } from "@paper3d/model";
+import type { GradientSublayer, HeightfieldLayer, PaintSublayer } from "@paper3d/model";
 import { useEffect, useRef, useState } from "react";
 import { useDocStore } from "../../state/docStore";
 import { getCompositor, useFieldStore } from "../../state/fieldStore";
 import { useUiStore } from "../../state/uiStore";
+import { GradientHandles2D } from "./GradientHandles2D";
 import { Ruler } from "./Ruler";
 import { paintFieldToCanvas } from "./colormap";
 import { Stroke } from "./paint";
@@ -26,6 +27,12 @@ export function Editor2D() {
     if (selected?.kind === "paint") return selected;
     return layer.heightmap.sublayers.find((s): s is PaintSublayer => s.kind === "paint");
   })();
+
+  // When the active thing is a gradient sublayer, its endpoints are draggable
+  // right on the canvas (the gradient's native UV space).
+  const gradientTarget = layer?.heightmap.sublayers.find(
+    (s): s is GradientSublayer => s.kind === "gradient" && s.id === ui.selectedSublayerId,
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -124,6 +131,7 @@ export function Editor2D() {
               }}
             />
           )}
+          {gradientTarget && <GradientHandles2D layer={layer} sublayer={gradientTarget} />}
           {readout && (
             <div className="cursor-readout">
               x {readout.x.toFixed(0)} · z {readout.z.toFixed(0)} · h {readout.h.toFixed(1)}

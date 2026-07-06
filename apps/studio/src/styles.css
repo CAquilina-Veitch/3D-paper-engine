@@ -746,6 +746,45 @@ h2 {
   touch-action: none;
 }
 
+/* Gradient endpoint handles over the 2D canvas */
+.grad-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.grad-overlay svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.grad-overlay line {
+  stroke: var(--family-a);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.grad-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--chipboard);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.grad-handle:active {
+  cursor: grabbing;
+}
+.grad-handle.from {
+  background: var(--card);
+}
+.grad-handle.to {
+  background: var(--family-a);
+}
+
 .brush-cursor {
   position: absolute;
   border: 1px solid var(--card);

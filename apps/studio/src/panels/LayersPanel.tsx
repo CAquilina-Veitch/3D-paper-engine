@@ -7,6 +7,7 @@ import {
   newId,
   newObjectLayer,
 } from "@paper3d/model";
+import { useEffect } from "react";
 import { SelectField, SliderField } from "../components/fields";
 import { useDocStore } from "../state/docStore";
 import { useUiStore } from "../state/uiStore";
@@ -22,7 +23,39 @@ const INTERACTION_GLYPH: Record<string, string> = {
 export function LayersPanel() {
   const doc = useDocStore((s) => s.doc);
   const update = useDocStore((s) => s.update);
-  const { selectedLayerId, selectedSublayerId, set } = useUiStore();
+  const { selectedLayerId, selectedSublayerId, isolatedLayerId, set } = useUiStore();
+
+  const isolated = doc.layers.find((l) => l.id === isolatedLayerId);
+
+  // If the isolated layer disappears (undo, file open), fall back to the scene.
+  useEffect(() => {
+    if (isolatedLayerId && !isolated) set({ isolatedLayerId: null });
+  }, [isolatedLayerId, isolated, set]);
+
+  if (isolated) {
+    return (
+      <div className="layers-panel focus">
+        <button
+          type="button"
+          className="breadcrumb"
+          onClick={() =>
+            set({ isolatedLayerId: null, selectedLayerId: isolated.id, selectedSublayerId: null })
+          }
+        >
+          ← Scene
+        </button>
+        <div className="panel-head">
+          <h2>{isolated.name}</h2>
+          {isolated.kind === "object" && <span className="kind-tag">obj</span>}
+        </div>
+        {isolated.kind === "heightfield" ? (
+          <SublayerList layer={isolated} selectedSublayerId={selectedSublayerId} root />
+        ) : (
+          <p className="hint">Object layer — shape it in the Sculpt view.</p>
+        )}
+      </div>
+    );
+  }
 
   const selectedId = selectedLayerId;
 
@@ -107,7 +140,15 @@ export function LayersPanel() {
               <button
                 type="button"
                 className="layer-name"
+                title="Click to select · double-click to open"
                 onClick={() => set({ selectedLayerId: layer.id, selectedSublayerId: null })}
+                onDoubleClick={() =>
+                  set({
+                    isolatedLayerId: layer.id,
+                    selectedLayerId: layer.id,
+                    selectedSublayerId: null,
+                  })
+                }
               >
                 <strong>{layer.name}</strong>
                 {layer.kind === "object" && <span className="kind-tag">obj</span>}
@@ -153,7 +194,12 @@ export function LayersPanel() {
   );
 }
 
-function SublayerList(props: { layer: HeightfieldLayer; selectedSublayerId: string | null }) {
+function SublayerList(props: {
+  layer: HeightfieldLayer;
+  selectedSublayerId: string | null;
+  /** Focus mode renders the stack as the panel's first-class list, without the nesting rail. */
+  root?: boolean;
+}) {
   const update = useDocStore((s) => s.update);
   const set = useUiStore((s) => s.set);
   const { layer } = props;
@@ -168,7 +214,7 @@ function SublayerList(props: { layer: HeightfieldLayer; selectedSublayerId: stri
   const subs = layer.heightmap.sublayers.slice().reverse();
 
   return (
-    <div className="sublayers">
+    <div className={`sublayers${props.root ? " root" : ""}`}>
       {subs.map((sub) => (
         <div
           key={sub.id}

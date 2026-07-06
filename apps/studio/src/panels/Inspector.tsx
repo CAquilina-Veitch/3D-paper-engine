@@ -18,15 +18,17 @@ const OPENINGS: readonly SlotOpening[] = ["top", "bottom"];
 export function Inspector() {
   const doc = useDocStore((s) => s.doc);
   const update = useDocStore((s) => s.update);
-  const { selectedLayerId, selectedSublayerId } = useUiStore();
+  const { selectedLayerId, selectedSublayerId, isolatedLayerId } = useUiStore();
   const result = useSliceStore((s) => s.result);
   const stats = buildStats(result);
   const currentMaterial =
     MATERIAL_PRESETS.find((p) => Math.abs(p.thickness - doc.print.paperThickness) < 1e-6)?.name ??
     "Custom";
 
-  // No fallback: with nothing selected the inspector shows the scene itself.
-  const selectedLayer: SmartLayer | undefined = doc.layers.find((l) => l.id === selectedLayerId);
+  // With nothing selected the inspector shows the scene itself — unless a layer
+  // is open in focus mode, in which case that layer is the ambient context.
+  const activeLayerId = selectedLayerId ?? isolatedLayerId;
+  const selectedLayer: SmartLayer | undefined = doc.layers.find((l) => l.id === activeLayerId);
   const hf = selectedLayer?.kind === "heightfield" ? selectedLayer : undefined;
   const obj = selectedLayer?.kind === "object" ? selectedLayer : undefined;
   const sublayer = hf?.heightmap.sublayers.find((s) => s.id === selectedSublayerId);

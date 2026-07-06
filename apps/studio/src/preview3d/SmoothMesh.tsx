@@ -14,11 +14,13 @@ export function SmoothMesh() {
   const version = useFieldStore((s) => s.version);
 
   const selectedId = useUiStore((s) => s.selectedLayerId);
+  const isolatedId = useUiStore((s) => s.isolatedLayerId);
   const layers = doc.layers.filter(
     (l): l is HeightfieldLayer => l.kind === "heightfield" && l.visible,
   );
   // Show the layer being edited; fall back to the top visible heightfield.
-  const layer = layers.find((l) => l.id === selectedId) ?? layers[layers.length - 1];
+  const layer =
+    layers.find((l) => l.id === (selectedId ?? isolatedId)) ?? layers[layers.length - 1];
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();

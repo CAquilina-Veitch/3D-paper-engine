@@ -421,6 +421,29 @@ h2 {
   margin: 0 6px 6px 14px;
   border-left: 2px solid var(--edge);
 }
+/* Focus mode: the opened layer's stack IS the panel — no nesting rail. */
+.sublayers.root {
+  padding: 0;
+  margin: 0;
+  border-left: none;
+}
+
+/* Breadcrumb back out of an opened layer */
+.breadcrumb {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 2px 0 8px;
+  color: var(--kraft);
+  font-family: var(--cond);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.breadcrumb:hover {
+  color: var(--ink);
+}
 
 .tag {
   font-family: var(--mono);

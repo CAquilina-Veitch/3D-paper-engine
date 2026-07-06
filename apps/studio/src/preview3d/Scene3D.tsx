@@ -35,6 +35,7 @@ export function Scene3D() {
   const set = useUiStore((s) => s.set);
   // No fallback: nothing selected = no gizmo, and the inspector shows the scene.
   const selectedId = useUiStore((s) => s.selectedLayerId);
+  const isolatedId = useUiStore((s) => s.isolatedLayerId);
 
   const cx = doc.world.width / 2;
   const cz = doc.world.depth / 2;
@@ -70,7 +71,9 @@ export function Scene3D() {
         frameloop="always"
         camera={{ position: [cx + 170, 150, cz + 200], fov: 40, near: 1, far: 4000 }}
         style={{ background: "#102621" }}
-        onPointerMissed={() => set({ selectedLayerId: null, selectedSublayerId: null })}
+        onPointerMissed={() =>
+          set({ selectedLayerId: isolatedId ?? null, selectedSublayerId: null })
+        }
       >
         <ambientLight intensity={0.7} />
         <directionalLight position={[200, 400, 100]} intensity={1.4} />
@@ -80,7 +83,7 @@ export function Scene3D() {
           position={[cx, 0, cz]}
         />
         {doc.layers
-          .filter((l) => l.visible)
+          .filter((l) => l.visible && (!isolatedId || l.id === isolatedId))
           .map((layer) => (
             <LayerNode
               key={layer.id}

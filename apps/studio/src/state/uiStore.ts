@@ -19,6 +19,8 @@ interface UiState {
   shading: MapShading;
   selectedLayerId: string | null;
   selectedSublayerId: string | null;
+  /** Focus mode: when set, the app edits this layer in isolation (Photoshop-style "open" layer). */
+  isolatedLayerId: string | null;
   brushSize: number;
   brushHardness: number;
   brushOpacity: number;
@@ -38,6 +40,7 @@ export const useUiStore = create<UiState>()((set) => ({
   shading: "hypso",
   selectedLayerId: null,
   selectedSublayerId: null,
+  isolatedLayerId: null,
   brushSize: 24,
   brushHardness: 0.6,
   brushOpacity: 0.5,
